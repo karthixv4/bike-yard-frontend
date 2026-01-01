@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Apex</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              nothing: {
+                black: 'var(--bg-main)',      // Main Background
+                dark: 'var(--bg-card)',       // Card Background
+                gray: 'var(--border-color)',  // Borders
+                red: '#D71921',               // Always Red
+                white: 'var(--text-main)',    // Main Text
+                muted: 'var(--text-muted)',   // Secondary Text
+                inverse: 'var(--text-inverse)', // Inverse text
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['"Roboto Mono"', 'monospace'],
+            },
+            animation: {
+              'blink': 'blink 1s step-end infinite',
+              'spin-slow': 'spin 3s linear infinite',
+            },
+            keyframes: {
+              blink: {
+                '0%, 100%': { opacity: '1' },
+                '50%': { opacity: '0' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        /* DARK MODE (DEFAULT) */
+        --bg-main: #000000;
+        --bg-card: #0f0f0f;
+        --border-color: #262626;
+        --text-main: #FFFFFF;
+        --text-inverse: #000000;
+        --text-muted: #a3a3a3; /* Neutral 400 */
+        
+        /* Scrollbar */
+        --scroll-track: #0f0f0f;
+        --scroll-thumb: #262626;
+        --scroll-thumb-hover: #404040;
+      }
+
+      .light-mode {
+        /* LIGHT MODE - Optimized for contrast */
+        --bg-main: #F0F0F0;     /* Slightly darker white for depth */
+        --bg-card: #FFFFFF;     /* Pure white for cards */
+        --border-color: #D4D4D4; /* Darker border for visibility */
+        --text-main: #111111;   /* Almost black for sharp text */
+        --text-inverse: #FFFFFF;
+        --text-muted: #525252;  /* Neutral 600 for readability */
+
+        /* Scrollbar */
+        --scroll-track: #EAEAEA;
+        --scroll-thumb: #C0C0C0;
+        --scroll-thumb-hover: #A0A0A0;
+      }
+
+      body {
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        font-family: 'Inter', sans-serif;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Custom scrollbar to match theme */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--scroll-track); 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--scroll-thumb); 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--scroll-thumb-hover); 
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "redux": "https://esm.sh/redux@^5.0.0",
+    "react-redux": "https://esm.sh/react-redux@^9.0.0",
+    "@reduxjs/toolkit": "https://esm.sh/@reduxjs/toolkit@^2.0.0",
+    "axios": "https://esm.sh/axios@^1.6.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "name": "XathonFrontend",
+  "description": "A stylish, dark-themed onboarding page inspired by the Nothing OS aesthetic using React, Tailwind, and Framer Motion.",
+  "requestFramePermissions": []
+}
