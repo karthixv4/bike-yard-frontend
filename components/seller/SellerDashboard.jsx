@@ -218,7 +218,7 @@ const SellerDashboard = () => {
             title="Total Revenue"
             value={`₹${stats.revenue.toLocaleString()}`}
             icon={DollarSign}
-            trend="+12%"
+            trend=""
           />
           <StatCard
             title="Items Sold"

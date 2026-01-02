@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
-import { openInspectionModal, openReportModal, orderPart, fetchAvailableInspections, fetchActiveInspections } from '../../store/slices/mechanicSlice';
-import Navbar from '../common/Navbar';
+import {
+    openInspectionModal,
+    openHistoryModal,
+    openReportModal,
+    addMechanicCartItem,
+    fetchAvailableInspections,
+    fetchActiveInspections,
+    fetchMechanicMarketplace,
+    fetchMechanicCart
+} from '../../store/slices/mechanicSlice'; import Navbar from '../common/Navbar';
 import Button from '../common/Button';
 import InspectionModal from './InspectionModal';
 import ReportModal from './ReportModal';
 import Footer from '../common/Footer';
+import MechanicCartDrawer from './MechanicCartDrawer';
+import HistoryModal from './HistoryModal';
+import MechanicPartDetailModal from './MechanicPartDetailModal';
+
 import {
     Wrench,
     ClipboardCheck,
@@ -17,10 +29,14 @@ import {
     MapPin,
     Calendar,
     Search,
-    RefreshCw
+    RefreshCw,
+    Plus,
+    ChevronLeft,
+    ChevronRight,
+    History,
+    XCircle,
+    ArrowUpRight
 } from 'lucide-react';
-
-// --- Sub Components ---
 
 const StatCard = ({ title, value, icon: Icon }) => (
     <motion.div
@@ -59,8 +75,8 @@ const RequestCard = ({ request, onClick }) => (
                 </div>
                 <h3 className="text-lg font-medium text-nothing-white truncate pr-2">{request.bikeModel}</h3>
                 <div className="flex items-center gap-4 text-sm text-nothing-muted mt-2">
-                    <span className="flex items-center gap-1"><MapPin size={14} /> {request.location}</span>
-                    <span className="flex items-center gap-1"><Calendar size={14} /> {request.date}</span>
+                    <span className="flex items-center gap-1 max-w-[120px] truncate"><MapPin size={14} className="shrink-0" /> {request.location}</span>
+                    <span className="flex items-center gap-1"><Calendar size={14} className="shrink-0" /> {request.date}</span>
                 </div>
             </div>
             <div className="flex flex-col items-end shrink-0">
@@ -77,6 +93,31 @@ const RequestCard = ({ request, onClick }) => (
     </motion.div>
 );
 
+const HistoryCard = ({ item, onClick }) => {
+    const isCompleted = item.status === 'completed';
+    return (
+        <div
+            onClick={onClick}
+            className="flex items-center justify-between p-4 bg-nothing-dark border border-nothing-gray rounded-xl hover:bg-nothing-white/5 transition-colors cursor-pointer group"
+        >
+            <div className="flex items-center gap-4">
+                <div className={`p-2 rounded-full ${isCompleted ? 'bg-green-500/10 text-green-500' : 'bg-nothing-red/10 text-nothing-red'}`}>
+                    {isCompleted ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                </div>
+                <div>
+                    <h4 className="text-sm font-medium text-nothing-white">{item.bikeModel}</h4>
+                    <p className="text-xs text-nothing-muted font-mono">{item.date}</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-4">
+                {isCompleted && (
+                    <span className="text-sm font-mono text-nothing-white">₹{item.offerAmount}</span>
+                )}
+                <ArrowUpRight size={16} className="text-nothing-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+        </div>
+    );
+};
 const ActiveJobCard = ({ job, onReport }) => (
     <div className="bg-nothing-black border border-nothing-gray rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex gap-4 items-center w-full md:w-auto">
@@ -101,38 +142,59 @@ const ActiveJobCard = ({ job, onReport }) => (
     </div>
 );
 
-const PartCard = ({ part, onOrder }) => (
-    <div className="bg-nothing-dark border border-nothing-gray rounded-2xl p-5 flex flex-col gap-4 group hover:bg-nothing-black/5 transition-colors">
-        <div className="flex justify-between items-start">
-            <div className="p-2 bg-nothing-black rounded-lg text-nothing-muted">
-                <ShoppingBag size={18} />
-            </div>
-            <span className="text-[10px] font-mono border border-nothing-gray px-2 py-1 rounded text-nothing-muted uppercase">
-                {part.category}
-            </span>
-        </div>
-        <div>
-            <h4 className="font-medium text-nothing-white truncate">{part.title}</h4>
-            <p className="text-xs text-nothing-muted mt-1">{part.supplier}</p>
-        </div>
-        <div className="mt-auto flex justify-between items-center pt-2">
-            <span className="font-mono text-nothing-white">₹{part.price}</span>
-            <button
-                onClick={onOrder}
-                className="p-2 bg-nothing-white text-nothing-black rounded-full hover:bg-neutral-200 transition-colors active:scale-95"
-            >
-                <PlusIcon />
-            </button>
-        </div>
-    </div>
-);
+const PartCard = ({ part, inCartQty, onClick, onAddToCart }) => {
+    const isOutOfStock = part.stock === 0;
 
-const PlusIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-);
+    return (
+        <div
+            onClick={onClick}
+            className="bg-nothing-dark border border-nothing-gray rounded-2xl p-5 flex flex-col gap-4 group hover:bg-nothing-black/5 transition-colors relative overflow-hidden cursor-pointer"
+        >            <div className="flex justify-between items-start z-10 relative">
+                <div className="p-2 bg-nothing-black rounded-lg text-nothing-muted border border-nothing-gray">
+                    {part.images && part.images.length > 0 ? (
+                        <div className="w-6 h-6 rounded-sm overflow-hidden">
+                            <img src={part.images[0].url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                    ) : (
+                        <ShoppingBag size={18} />
+                    )}
+                </div>
+                <span className="text-[10px] font-mono border border-nothing-gray px-2 py-1 rounded text-nothing-muted uppercase">
+                    {part.category}
+                </span>
+            </div>
+            <div className="z-10 relative">
+                <h4 className="font-medium text-nothing-white truncate group-hover:text-nothing-red transition-colors">{part.name}</h4>
+                <p className="text-xs text-nothing-muted mt-1">{part.supplier}</p>
+            </div>
+
+            {isOutOfStock && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20 backdrop-blur-[1px]">
+                    <span className="bg-nothing-red text-white text-[10px] px-2 py-1 font-mono uppercase rounded">Out of Stock</span>
+                </div>
+            )}
+
+            <div className="mt-auto flex justify-between items-center pt-2 z-10 relative">
+                <span className="font-mono text-nothing-white">₹{part.price.toLocaleString()}</span>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onAddToCart(); }}
+                    disabled={isOutOfStock}
+                    className={`
+                        p-2 rounded-full transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 z-20
+                        ${inCartQty ? 'bg-nothing-red text-white' : 'bg-nothing-white text-nothing-black hover:bg-neutral-200'}
+                    `}
+                    title="Add to Cart"
+                >
+                    {inCartQty ? (
+                        <span className="text-xs font-bold px-1">{inCartQty}</span>
+                    ) : (
+                        <Plus size={16} />
+                    )}
+                </button>
+            </div>
+        </div>
+    );
+};
 
 
 const MechanicDashboard = () => {
@@ -142,27 +204,56 @@ const MechanicDashboard = () => {
         requests,
         activeJobs,
         marketplace,
+        marketplaceMeta,
         stats,
+        history,
+        cart,
         isInspectionModalOpen,
         isReportModalOpen,
-        loading
+        isHistoryModalOpen,
+        loading,
+        marketLoading
     } = useSelector((state) => state.mechanic);
 
     const [activeTab, setActiveTab] = useState('jobs');
-
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [marketPage, setMarketPage] = useState(1);
+    const [selectedPart, setSelectedPart] = useState(null);
     useEffect(() => {
         dispatch(fetchAvailableInspections());
         dispatch(fetchActiveInspections());
-    }, [dispatch]);
+        dispatch(fetchMechanicMarketplace());
+        dispatch(fetchMechanicCart());
 
-    const handleOrder = (partName) => {
-        alert(`Order placed for ${partName}`);
-        // Dispatch order action here
+
+    }, [dispatch]);
+    useEffect(() => {
+        dispatch(fetchMechanicMarketplace(marketPage));
+    }, [dispatch, marketPage]);
+    const handleAddToCart = (partId) => {
+        dispatch(addMechanicCartItem({ productId: partId, quantity: 1 }));
     };
     const refreshData = () => {
         dispatch(fetchAvailableInspections());
         dispatch(fetchActiveInspections());
+        if (activeTab === 'market') {
+            dispatch(fetchMechanicMarketplace(marketPage));
+            dispatch(fetchMechanicCart());
+        }
     };
+
+    const getCartQuantity = (productId) => {
+        const item = cart.find(i => i.productId === productId);
+        return item ? item.quantity : undefined;
+    };
+
+    const totalPages = Math.ceil((marketplaceMeta?.total || 0) / (marketplaceMeta?.limit || 10));
+
+    const filteredMarketplace = marketplace.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
 
     return (
@@ -173,6 +264,10 @@ const MechanicDashboard = () => {
             <AnimatePresence>
                 {isInspectionModalOpen && <InspectionModal />}
                 {isReportModalOpen && <ReportModal />}
+                {isCartOpen && <MechanicCartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />}
+                {isHistoryModalOpen && <HistoryModal />}
+                {selectedPart && <MechanicPartDetailModal part={selectedPart} onClose={() => setSelectedPart(null)} />}
+
             </AnimatePresence>
 
             <main className="max-w-7xl mx-auto px-6 py-8 space-y-8 flex-1 w-full">
@@ -187,9 +282,9 @@ const MechanicDashboard = () => {
                         <button
                             onClick={refreshData}
                             className="p-3 rounded-full bg-nothing-dark border border-nothing-gray text-nothing-muted hover:text-white hover:border-white transition-all"
-                            title="Refresh Gigs"
+                            title="Refresh Data"
                         >
-                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                            <RefreshCw size={20} className={loading || marketLoading ? 'animate-spin' : ''} />
                         </button>
                     </div>
 
@@ -278,6 +373,23 @@ const MechanicDashboard = () => {
                                     </div>
                                 )}
                             </div>
+                            {/* History Section - Small & Compact */}
+                            {history.length > 0 && (
+                                <div className="space-y-4 pt-4 border-t border-nothing-gray/30">
+                                    <h2 className="text-sm font-medium flex items-center gap-2 text-nothing-muted uppercase tracking-widest">
+                                        <History size={16} /> Past Inspections
+                                    </h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                        {history.map(job => (
+                                            <HistoryCard
+                                                key={job.id}
+                                                item={job}
+                                                onClick={() => dispatch(openHistoryModal(job.id))}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     ) : (
                         <motion.div
@@ -294,22 +406,83 @@ const MechanicDashboard = () => {
                                     type="text"
                                     placeholder="Search for parts, oil, accessories..."
                                     className="w-full bg-nothing-dark border border-nothing-gray rounded-xl py-4 pl-12 pr-4 text-nothing-white outline-none focus:border-nothing-white transition-colors placeholder-nothing-muted"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {marketplace.map(part => (
-                                    <PartCard
-                                        key={part.id}
-                                        part={part}
-                                        onOrder={() => handleOrder(part.name)}
-                                    />
-                                ))}
-                            </div>
+                            {marketLoading ? (
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-pulse">
+                                    {[1, 2, 3, 4, 5, 6].map(i => (
+                                        <div key={i} className="h-48 bg-nothing-dark rounded-2xl border border-nothing-gray" />
+                                    ))}
+                                </div>
+                            ) : filteredMarketplace.length === 0 ? (
+                                <div className="py-12 text-center text-nothing-muted font-mono">
+                                    No parts found matching your search.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {filteredMarketplace.map(part => (
+                                        <PartCard
+                                            key={part.id}
+                                            part={part}
+                                            inCartQty={getCartQuantity(part.id)}
+                                            onAddToCart={() => handleAddToCart(part.id)}
+                                            onClick={() => setSelectedPart(part)}
+
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                            {/* Pagination Controls */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center mt-8">
+                                    <div className="flex items-center gap-2 md:gap-4 bg-nothing-dark border border-nothing-gray rounded-full px-3 py-1.5 md:px-4 md:py-2 shadow-lg">
+                                        <button
+                                            disabled={marketPage === 1}
+                                            onClick={() => setMarketPage(p => Math.max(1, p - 1))}
+                                            className="p-2 hover:bg-nothing-white/10 rounded-full text-nothing-muted hover:text-white disabled:opacity-30 transition-colors"
+                                        >
+                                            <ChevronLeft size={18} />
+                                        </button>
+
+                                        <div className="flex items-center gap-1 px-2">
+                                            <span className="text-xs md:text-sm font-mono text-nothing-muted uppercase">Page</span>
+                                            <span className="text-sm md:text-base font-medium text-nothing-white min-w-[1.5rem] text-center">{marketPage}</span>
+                                            <span className="text-xs md:text-sm font-mono text-nothing-muted">/ {totalPages}</span>
+                                        </div>
+
+                                        <button
+                                            disabled={marketPage === totalPages}
+                                            onClick={() => setMarketPage(p => Math.min(totalPages, p + 1))}
+                                            className="p-2 hover:bg-nothing-white/10 rounded-full text-nothing-muted hover:text-white disabled:opacity-30 transition-colors"
+                                        >
+                                            <ChevronRight size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
-
+                {/* FAB for Mechanic Cart */}
+                <AnimatePresence>
+                    {cart.length > 0 && activeTab === 'market' && (
+                        <motion.button
+                            initial={{ scale: 0, rotate: 180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            exit={{ scale: 0, rotate: -180 }}
+                            onClick={() => setIsCartOpen(true)}
+                            className="fixed bottom-8 right-8 z-40 bg-nothing-red text-white p-4 rounded-full shadow-2xl shadow-nothing-red/40 hover:scale-110 active:scale-95 transition-transform"
+                        >
+                            <ShoppingBag size={24} />
+                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-nothing-black rounded-full flex items-center justify-center text-xs font-bold">
+                                {cart.length}
+                            </span>
+                        </motion.button>
+                    )}
+                </AnimatePresence>
             </main>
             <Footer />
         </div>

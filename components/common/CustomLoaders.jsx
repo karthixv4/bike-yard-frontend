@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Scan, ShoppingBag, Upload, Tag, Plus, Image as ImageIcon, ArrowUp, Fingerprint, Cloud, Database, Box, RefreshCw, UserCheck, Bike, ClipboardCheck, Lock, FileText, Trash2, Truck } from 'lucide-react';
+import { Scan, ShoppingBag, Upload, Tag, Plus, Image as ImageIcon, ArrowUp, Fingerprint, Cloud, Database, Box, RefreshCw, UserCheck, Bike, ClipboardCheck, Lock, FileText, Trash2, Truck, MinusCircle } from 'lucide-react';
 
 const CustomLoaders = ({ type }) => {
   if (!type) return null;
@@ -71,6 +71,47 @@ const CustomLoaders = ({ type }) => {
             <div className="text-center space-y-2">
               <h3 className="text-xl font-medium tracking-tight">Retrieving Report</h3>
               <p className="text-xs font-mono text-neutral-500 uppercase tracking-widest">Fetching details...</p>
+            </div>
+          </div>
+        );
+      case 'adding-to-cart':
+        return (
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative w-24 h-24 flex items-center justify-center bg-nothing-dark border border-nothing-gray rounded-2xl">
+              <ShoppingBag size={32} className="text-nothing-white" />
+              <motion.div
+                className="absolute -top-2 -right-2 bg-green-500 p-2 rounded-full border-4 border-black"
+                initial={{ scale: 0 }}
+                animate={{ scale: [0, 1.2, 1] }}
+                transition={{ duration: 0.5 }}
+              >
+                <Plus size={14} className="text-black" strokeWidth={3} />
+              </motion.div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-medium tracking-tight">Adding to Cart</h3>
+              <p className="text-xs font-mono text-neutral-500 uppercase tracking-widest">Updating order...</p>
+            </div>
+          </div>
+        );
+
+      case 'removing-from-cart':
+        return (
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative w-24 h-24 flex items-center justify-center bg-nothing-dark border border-nothing-gray rounded-2xl">
+              <ShoppingBag size={32} className="text-nothing-white opacity-50" />
+              <motion.div
+                className="absolute -top-2 -right-2 bg-nothing-red p-2 rounded-full border-4 border-black"
+                initial={{ scale: 0 }}
+                animate={{ scale: [0, 1.2, 1] }}
+                transition={{ duration: 0.5 }}
+              >
+                <MinusCircle size={14} className="text-white" strokeWidth={3} />
+              </motion.div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-medium tracking-tight">Removing Item</h3>
+              <p className="text-xs font-mono text-neutral-500 uppercase tracking-widest">Updating cart...</p>
             </div>
           </div>
         );
@@ -280,6 +321,25 @@ const CustomLoaders = ({ type }) => {
       // Fallback loaders
       case 'listing':
       case 'category':
+        return (
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative w-24 h-24 flex items-center justify-center bg-nothing-dark border border-nothing-gray rounded-xl">
+              <Tag size={32} className="text-nothing-white" />
+              <motion.div
+                className="absolute -top-2 -right-2 bg-nothing-red p-1.5 rounded-full border-4 border-black"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring' }}
+              >
+                <Plus size={14} className="text-white" />
+              </motion.div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-medium tracking-tight">Adding Category</h3>
+              <p className="text-xs font-mono text-neutral-500 uppercase tracking-widest">Updating taxonomy...</p>
+            </div>
+          </div>
+        );
       case 'image-upload':
 
       default:

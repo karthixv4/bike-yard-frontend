@@ -443,7 +443,7 @@ const AddProductModal = () => {
                             autoFocus
                             type="text"
                             placeholder="Search or Create..."
-                            className="w-full bg-nothing-gray/10 border-none rounded-lg px-3 py-2 text-sm text-nothing-white focus:ring-0 outline-none placeholder-nothing-muted"
+                            className="w-full bg-nothing-black border border-nothing-gray rounded-lg px-3 py-2 text-sm text-nothing-white focus:border-nothing-white outline-none placeholder-nothing-muted transition-colors"
                             value={categorySearch}
                             onChange={(e) => setCategorySearch(e.target.value)}
                           />

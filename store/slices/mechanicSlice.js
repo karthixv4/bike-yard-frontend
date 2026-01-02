@@ -6,23 +6,24 @@ import { openStatusModal, setLoader } from './uiSlice';
 
 const initialState = {
   stats: {
-    earnings: 12500,
-    jobsCompleted: 14,
-    rating: 4.8,
+    earnings: 0,
+    jobsCompleted: 0,
+    rating: 4.8, // Default rating as backend calculation logic might be complex
   },
-  requests: [], // Will be populated by API
+  requests: [],
   activeJobs: [],
   history: [],
-  marketplace: [
-    { id: 'p1', name: 'Brembo Brake Pads (Rear)', category: 'Brakes', price: 2400, supplier: 'AutoParts Direct', stock: 15 },
-    { id: 'p2', name: 'Motul 7100 10W50 Oil', category: 'Fluids', price: 1100, supplier: 'Lube King', stock: 40 },
-    { id: 'p3', name: 'NGK Iridium Spark Plug', category: 'Electrical', price: 850, supplier: 'Sparky Bros', stock: 8 },
-    { id: 'p4', name: 'Chain & Sprocket Kit', category: 'Drivetrain', price: 3200, supplier: 'Chain Gang', stock: 3 },
-  ],
+  cart: [],
+  marketplace: [],
+  marketplaceMeta: { total: 0, page: 1, limit: 10 },
   isInspectionModalOpen: false,
   isReportModalOpen: false,
+  isHistoryModalOpen: false,
   selectedRequestId: null,
+  historySelectedId: null,
   loading: false,
+  marketLoading: false,
+  cartLoading: false,
 };
 
 // Async Thunks
@@ -58,9 +59,9 @@ export const acceptInspection = createAsyncThunk(
       // 2. Perform API Call
       await mechanicService.updateInspectionStatus(id, 'ACCEPTED');
 
-      // 3. Success Flow
-      dispatch(setLoader(null)); // Hide Loader
-      dispatch(closeInspectionModal()); // Close the Inspection Details Modal
+
+      dispatch(setLoader(null));
+      dispatch(closeInspectionModal());
 
       dispatch(openStatusModal({
         type: 'success',
@@ -123,6 +124,116 @@ export const submitInspectionReport = createAsyncThunk(
   }
 );
 
+
+export const fetchMechanicMarketplace = createAsyncThunk(
+  'mechanic/fetchMarketplace',
+  async (page = 1, { rejectWithValue }) => {
+    try {
+      const response = await mechanicService.fetchPartMarket(page, 10);
+      return response;
+    } catch (error) {
+      return rejectWithValue('Failed to load parts');
+    }
+  }
+);
+
+// --- Cart Thunks ---
+
+export const fetchMechanicCart = createAsyncThunk(
+  'mechanic/fetchCart',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await mechanicService.fetchCart();
+    } catch (error) {
+      return rejectWithValue('Failed to load cart');
+    }
+  }
+);
+
+export const addMechanicCartItem = createAsyncThunk(
+  'mechanic/addToCart',
+  async (payload, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('adding-to-cart'));
+    try {
+      await mechanicService.addToCart(payload.productId, payload.quantity);
+      dispatch(fetchMechanicCart());
+      dispatch(openStatusModal({
+        type: 'success',
+        title: 'Added to Cart',
+        message: 'Part added to your order list.',
+        actionLabel: 'Keep Browsing'
+      }));
+      return payload.productId;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Could not add item to cart.';
+      dispatch(openStatusModal({ type: 'error', title: 'Error', message: message }));
+      return rejectWithValue(message);
+    }
+    finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
+
+export const removeMechanicCartItem = createAsyncThunk(
+  'mechanic/removeFromCart',
+  async (cartItemId, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('removing-from-cart'));
+    try {
+      await mechanicService.removeFromCart(cartItemId);
+      dispatch(fetchMechanicCart());
+      return cartItemId;
+    } catch (error) {
+      return rejectWithValue('Failed to remove item');
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
+
+export const updateMechanicCartQty = createAsyncThunk(
+  'mechanic/updateCartQty',
+  async (payload, { dispatch, rejectWithValue }) => {
+    try {
+      await mechanicService.updateCartItemQuantity(payload.id, payload.quantity);
+      dispatch(fetchMechanicCart());
+      return payload;
+    } catch (error) {
+      return rejectWithValue('Failed to update quantity');
+    }
+  }
+);
+
+export const checkoutMechanicCart = createAsyncThunk(
+  'mechanic/checkout',
+  async (_, { dispatch, getState, rejectWithValue }) => {
+    dispatch(setLoader('checkout'));
+    try {
+      const response = await mechanicService.checkout();
+
+      dispatch(openStatusModal({
+        type: 'success',
+        title: 'Order Placed',
+        message: `Order #${response.order.id.slice(-6)} confirmed.`,
+        actionLabel: 'Done'
+      }));
+
+      dispatch(fetchMechanicCart());
+      dispatch(fetchMechanicMarketplace(1));
+
+      return response;
+    } catch (error) {
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Checkout Failed',
+        message: error.message || 'Could not place order.'
+      }));
+      return rejectWithValue(error.message);
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
 const mechanicSlice = createSlice({
   name: 'mechanic',
   initialState,
@@ -142,6 +253,14 @@ const mechanicSlice = createSlice({
     closeReportModal: (state) => {
       state.isReportModalOpen = false;
       state.selectedRequestId = null;
+    },
+    openHistoryModal: (state, action) => {
+      state.historySelectedId = action.payload;
+      state.isHistoryModalOpen = true;
+    },
+    closeHistoryModal: (state) => {
+      state.isHistoryModalOpen = false;
+      state.historySelectedId = null;
     },
     rejectRequest: (state, action) => {
       const requestIndex = state.requests.findIndex(r => r.id === state.selectedRequestId);
@@ -167,36 +286,89 @@ const mechanicSlice = createSlice({
     });
     builder.addCase(fetchAvailableInspections.fulfilled, (state, action) => {
       state.loading = false;
-      // Map API response to local state structure
-      state.requests = action.payload.map((item) => ({
-        id: String(item.id), // Ensure ID is string
-        bikeModel: item.product.title,
-        bikeImage: item.product.images[0]?.url || '',
-        customerName: item.buyer.name,
-        location: 'Mumbai', // Defaulting as API doesn't provide it yet
-        offerAmount: item.offerAmount,
-        date: item.scheduledDate ? item.scheduledDate.split('T')[0] : item.createdAt.split('T')[0],
-        status: 'pending',
-        details: item.message || 'Standard Inspection Request'
-      }));
-    });
-    // Active Inspections
-    builder.addCase(fetchActiveInspections.fulfilled, (state, action) => {
-      // Filter out cancelled inspections as mechanics shouldn't see them
       state.requests = action.payload
-        .filter((item) => item.status !== 'CANCELLED')
+        .filter((item) => item.status === 'PENDING')
         .map((item) => ({
+          id: String(item.id),
+          bikeModel: item.product.title,
+          bikeImage: item.product.images[0]?.url || '',
+          customerName: item.buyer.name,
+          location: item.product.address || 'Location provided upon acceptance', // Actual data
+          offerAmount: item.offerAmount,
+          date: item.scheduledDate ? item.scheduledDate.split('T')[0] : item.createdAt.split('T')[0],
+          status: 'pending',
+          details: item.message || 'Standard Inspection Request'
+        }));
+    });
+    builder.addCase(fetchActiveInspections.fulfilled, (state, action) => {
+      const allInspections = action.payload;
+
+      const active = [];
+      const past = [];
+      let totalEarnings = 0;
+      let completedCount = 0;
+
+      allInspections.forEach((item) => {
+        const mapped = {
           id: String(item.id),
           bikeModel: item.product?.title || 'Unknown Model',
           bikeImage: item.product?.images?.[0]?.url || '',
           customerName: item.buyer?.name || 'Unknown Buyer',
-          location: 'Mumbai', // Fallback
+          location: item.product?.address || 'Location Unknown',
           offerAmount: item.offerAmount,
           date: item.createdAt ? item.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
           status: item.status.toLowerCase(),
           details: item.message || 'Inspection Request',
           dueDate: item.scheduledDate ? item.scheduledDate.split('T')[0] : undefined,
-        }));
+          report: item.reportData ? {
+            scores: item.reportData.scores,
+            overallComment: item.reportData.overallComment
+          } : undefined,
+          rejectionReason: item.rejectionReason,
+
+        };
+
+        const statusLower = mapped.status.toLowerCase();
+        if (['completed', 'rejected', 'cancelled'].includes(statusLower)) {
+          past.push(mapped);
+          if (statusLower === 'completed') {
+            completedCount++;
+            totalEarnings += mapped.offerAmount;
+          }
+        } else {
+          active.push(mapped);
+        }
+      });
+
+      state.activeJobs = active;
+      state.history = past;
+
+      // Update Stats
+      state.stats.earnings = totalEarnings;
+      state.stats.jobsCompleted = completedCount;
+    });
+    // Marketplace
+    builder.addCase(fetchMechanicMarketplace.pending, (state) => {
+      state.marketLoading = true;
+    });
+    builder.addCase(fetchMechanicMarketplace.fulfilled, (state, action) => {
+      state.marketLoading = false;
+      const data = action.payload.data || [];
+      const meta = action.payload.pagination || { total: 0, page: 1, limit: 10 };
+
+      state.marketplace = data.map((item) => ({
+        id: item.id,
+        name: item.title,
+        category: item.category || 'General',
+        price: item.price,
+        stock: item.stock || 0,
+        supplier: item.seller?.businessName || 'Verified Supplier',
+        images: item.images
+      }));
+      state.marketplaceMeta = meta;
+    });
+    builder.addCase(fetchMechanicMarketplace.rejected, (state) => {
+      state.marketLoading = false;
     });
     builder.addCase(fetchAvailableInspections.rejected, (state) => {
       state.loading = false;
@@ -209,13 +381,25 @@ const mechanicSlice = createSlice({
       if (index !== -1) {
         const request = state.requests[index];
         request.status = 'accepted';
-        request.dueDate = new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]; // Due in 2 days
+        request.dueDate = new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0];
         state.activeJobs.push(request);
         state.requests.splice(index, 1);
       }
-      // Note: Modal closing is now handled in the thunk to ensure correct ordering with UI loader
     });
-
+    // Cart
+    builder.addCase(fetchMechanicCart.pending, (state) => {
+      state.cartLoading = true;
+    });
+    builder.addCase(fetchMechanicCart.fulfilled, (state, action) => {
+      state.cartLoading = false;
+      state.cart = action.payload;
+    });
+    builder.addCase(fetchMechanicCart.rejected, (state) => {
+      state.cartLoading = false;
+    });
+    builder.addCase(checkoutMechanicCart.fulfilled, (state) => {
+      state.cart = [];
+    });
     // Submit Report Logic
     builder.addCase(submitInspectionReport.fulfilled, (state, action) => {
       const { id, report } = action.payload;
@@ -224,12 +408,8 @@ const mechanicSlice = createSlice({
         const job = state.activeJobs[jobIndex];
         job.status = 'completed';
         job.report = report;
-
-        // Move to history
         state.history.unshift(job);
         state.activeJobs.splice(jobIndex, 1);
-
-        // Update stats
         state.stats.jobsCompleted += 1;
         state.stats.earnings += job.offerAmount;
       }
@@ -242,6 +422,8 @@ export const {
   closeInspectionModal,
   openReportModal,
   closeReportModal,
+  openHistoryModal,
+  closeHistoryModal,
   rejectRequest,
   orderPart
 } = mechanicSlice.actions;
