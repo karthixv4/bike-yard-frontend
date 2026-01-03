@@ -5,7 +5,7 @@ import { setDetails } from '../../store/slices/authSlice';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import Checkbox from '../common/Checkbox';
-import { Info, Search, Bike, AlertCircle, Check, ArrowRight, X, Box } from 'lucide-react';
+import { Info, Search, Bike, AlertCircle, Check, ArrowRight, X, ScanLine, Box, Plus } from 'lucide-react';
 
 // --- MOCK BIKE DATABASE ---
 const MOCK_BIKES = [
@@ -29,6 +29,7 @@ const MOCK_BIKES = [
 const RoleDetails = ({ role, onBack, onContinue }) => {
   const dispatch = useDispatch();
 
+  // --- GENERAL STATE ---
   const [formData, setFormData] = useState({
     businessName: '',
     gstNumber: '',
@@ -37,13 +38,13 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
     shopAddress: '',
     hourlyRate: '',
     isMobileService: false,
-    // User specific (legacy/base)
     bikeModel: ''
   });
   const [errors, setErrors] = useState({});
 
   // --- USER WIZARD STATE ---
   const [userStep, setUserStep] = useState('ownership');
+  const [hasBike, setHasBike] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedBike, setSelectedBike] = useState('');
@@ -52,8 +53,18 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
   const [bikeYear, setBikeYear] = useState('2022');
   const [registration, setRegistration] = useState('');
 
+  // --- MANUAL ADD STATE ---
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [manualFormData, setManualFormData] = useState({
+    brand: '',
+    model: '',
+    year: '',
+    registration: ''
+  });
+  const [manualErrors, setManualErrors] = useState({});
+
   // Animation State
-  const [loadingStage, setLoadingStage] = useState(0);
+  const [loadingStage, setLoadingStage] = useState(0); // 0: Scanning, 1: Specs, 2: 3D, 3: Done
 
   // --- HANDLERS ---
 
@@ -65,6 +76,34 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
 
   const handleCheckboxChange = (checked) => {
     setFormData(prev => ({ ...prev, isMobileService: checked }));
+  };
+
+  const handleManualChange = (e) => {
+    setManualFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    if (manualErrors[e.target.name]) setManualErrors(prev => ({ ...prev, [e.target.name]: '' }));
+  };
+
+  const handleManualSubmit = () => {
+    const newErrors = {};
+    if (!manualFormData.brand) newErrors.brand = "Required";
+    if (!manualFormData.model) newErrors.model = "Required";
+    if (!manualFormData.year) newErrors.year = "Required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setManualErrors(newErrors);
+      return;
+    }
+
+    const fullModelName = `${manualFormData.brand} ${manualFormData.model}`;
+
+    // Set Data
+    setSelectedBike(fullModelName);
+    setBikeYear(manualFormData.year);
+    setRegistration(manualFormData.registration);
+
+    // Close Modal & Trigger Loading Sequence (Skip 'details' step as we have data)
+    setIsManualModalOpen(false);
+    setUserStep('loading');
   };
 
   // --- SEARCH LOGIC ---
@@ -95,11 +134,12 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
         setTimeout(() => setLoadingStage(2), 3000),
         setTimeout(() => setLoadingStage(3), 4500),
         setTimeout(() => {
+          // Finalize
           dispatch(setDetails({
             hasBike: true,
             bikeModel: selectedBike,
-            bikeYear,
-            registration
+            bikeYear: bikeYear,
+            registration: registration
           }));
           onContinue();
         }, 5500)
@@ -108,6 +148,7 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
     }
   }, [userStep, dispatch, selectedBike, bikeYear, registration, onContinue]);
 
+  // --- VALIDATION ---
   const validateGeneralForm = () => {
     const newErrors = {};
     let isValid = true;
@@ -126,7 +167,6 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
 
   const handleGeneralSubmit = () => {
     if (validateGeneralForm()) {
-      // Filter data based on role to avoid sending empty irrelevant fields
       let relevantData = {};
 
       if (role === 'seller') {
@@ -255,7 +295,7 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
-                onClick={() => setUserStep('search')}
+                onClick={() => { setHasBike(true); setUserStep('search'); }}
                 className="h-40 border border-nothing-gray rounded-3xl p-6 flex flex-col justify-between items-start hover:bg-nothing-dark hover:border-nothing-white transition-all group bg-nothing-dark/50"
               >
                 <div className="p-3 bg-nothing-dark group-hover:bg-nothing-black rounded-full border border-nothing-gray transition-colors">
@@ -345,7 +385,12 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
                 <div className="mt-4 p-4 border border-dashed border-nothing-gray rounded-xl text-center text-nothing-muted">
                   <AlertCircle className="mx-auto mb-2" size={20} />
                   <p className="text-sm">We couldn't find that model.</p>
-                  <button className="text-xs font-mono text-nothing-red mt-2 hover:underline uppercase">Add manually</button>
+                  <button
+                    onClick={() => setIsManualModalOpen(true)}
+                    className="text-xs font-mono text-nothing-red mt-2 hover:underline uppercase"
+                  >
+                    Add manually
+                  </button>
                 </div>
               )}
             </div>
@@ -373,7 +418,7 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
                 <input
                   type="range"
                   min="2010"
-                  max="2026"
+                  max="2024"
                   step="1"
                   value={bikeYear}
                   onChange={(e) => setBikeYear(e.target.value)}
@@ -381,7 +426,7 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
                 />
                 <div className="flex justify-between text-xs text-nothing-muted font-mono">
                   <span>2010</span>
-                  <span>2026</span>
+                  <span>2024</span>
                 </div>
               </div>
 
@@ -424,6 +469,90 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 w-full max-w-xl mx-auto relative z-10">
         {renderUserWizard()}
+
+        {/* MANUAL ADD MODAL */}
+        <AnimatePresence>
+          {isManualModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+                onClick={() => setIsManualModalOpen(false)}
+              />
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 50 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 50 }}
+                className="relative bg-nothing-dark border border-nothing-gray w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+              >
+                <div className="p-6 border-b border-nothing-gray flex justify-between items-center bg-nothing-black/50">
+                  <h2 className="text-xl font-medium tracking-tight text-nothing-white flex items-center gap-2">
+                    <Plus size={20} className="text-nothing-red" /> Add Manual Details
+                  </h2>
+                  <button
+                    onClick={() => setIsManualModalOpen(false)}
+                    className="p-2 rounded-full hover:bg-nothing-white/10 transition-colors"
+                  >
+                    <X size={20} className="text-nothing-muted hover:text-nothing-white" />
+                  </button>
+                </div>
+
+                <div className="p-8 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Brand"
+                      name="brand"
+                      placeholder="e.g. KTM"
+                      value={manualFormData.brand}
+                      onChange={handleManualChange}
+                      error={manualErrors.brand}
+                    />
+                    <Input
+                      label="Model"
+                      name="model"
+                      placeholder="e.g. Duke 390"
+                      value={manualFormData.model}
+                      onChange={handleManualChange}
+                      error={manualErrors.model}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Year"
+                      name="year"
+                      type="number"
+                      placeholder="2022"
+                      value={manualFormData.year}
+                      onChange={handleManualChange}
+                      error={manualErrors.year}
+                    />
+                    <Input
+                      label="Registration No."
+                      name="registration"
+                      placeholder="MH 02 XX 1234"
+                      value={manualFormData.registration}
+                      onChange={handleManualChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-6 border-t border-nothing-gray bg-nothing-dark flex justify-end gap-4">
+                  <button
+                    onClick={() => setIsManualModalOpen(false)}
+                    className="px-6 py-3 rounded-full text-sm font-mono text-nothing-muted hover:text-nothing-white transition-colors uppercase tracking-wide"
+                  >
+                    Cancel
+                  </button>
+                  <Button onClick={handleManualSubmit} withArrow className="py-3 px-6 text-sm">
+                    Add Bike
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
