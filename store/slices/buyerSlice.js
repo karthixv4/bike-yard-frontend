@@ -17,7 +17,11 @@ const initialState = {
   },
   isCartLoading: false,
   bikeHistory: [],
-  isHistoryLoading: false
+  isHistoryLoading: false,
+  tour: {
+    isOpen: false,
+    step: 0
+  }
 };
 export const updateGarageBike = createAsyncThunk(
   'buyer/updateGarageBike',
@@ -371,6 +375,21 @@ const buyerSlice = createSlice({
     },
     setSelectedBuyerOrder: (state, action) => {
       state.selectedOrder = action.payload;
+    },
+    // Tour Actions
+    startDetailedTour: (state) => {
+      state.tour.isOpen = true;
+      state.tour.step = 0;
+    },
+    nextDetailedTourStep: (state) => {
+      state.tour.step += 1;
+    },
+    prevDetailedTourStep: (state) => {
+      if (state.tour.step > 0) state.tour.step -= 1;
+    },
+    closeDetailedTour: (state) => {
+      state.tour.isOpen = false;
+      state.tour.step = 0;
     }
   },
   extraReducers: (builder) => {
@@ -496,7 +515,11 @@ const buyerSlice = createSlice({
 });
 
 export const {
-  clearSelectedInspection, setSelectedBuyerOrder
+  clearSelectedInspection, setSelectedBuyerOrder,
+  startDetailedTour,
+  nextDetailedTourStep,
+  prevDetailedTourStep,
+  closeDetailedTour
 } = buyerSlice.actions;
 
 export default buyerSlice.reducer;

@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { markWelcomeTourSeen, closeWelcomeModal } from '../../store/slices/uiSlice';
+import { startDetailedTour } from '../../store/slices/buyerSlice';
+
 import Button from './Button';
 import {
     Bike,
@@ -17,7 +19,8 @@ import {
     ChevronRight,
     ChevronLeft,
     CheckCircle2,
-    X
+    X,
+    Map
 } from 'lucide-react';
 
 
@@ -167,11 +170,14 @@ const WelcomeFeatureModal = () => {
 
     const slides = getSlides();
     const currentSlide = slides[currentIndex];
+    const isUser = user?.role === 'user';
 
     const handleNext = () => {
         setDirection(1);
         if (currentIndex === slides.length - 1) {
-            handleClose();
+            if (!isUser) {
+                handleClose();
+            }
         } else {
             setCurrentIndex(prev => prev + 1);
         }
@@ -183,7 +189,10 @@ const WelcomeFeatureModal = () => {
             setCurrentIndex(prev => prev - 1);
         }
     };
-
+    const handleStartDetailedTour = () => {
+        handleClose();
+        dispatch(startDetailedTour());
+    };
     const handleClose = () => {
         setIsVisible(false);
         dispatch(markWelcomeTourSeen());
@@ -322,10 +331,20 @@ const WelcomeFeatureModal = () => {
                             >
                                 <ChevronLeft size={20} />
                             </button>
-                            <Button onClick={handleNext} className="h-12 px-6">
-                                {currentIndex === slides.length - 1 ? "Finish" : "Next"}
-                                {currentIndex === slides.length - 1 ? <CheckCircle2 className="ml-2" size={18} /> : <ArrowRight className="ml-2" size={18} />}
-                            </Button>
+                            {/* Dynamic Next Button */}
+                            {currentIndex === slides.length - 1 && isUser ? (
+                                <Button onClick={handleStartDetailedTour} className="h-12 px-6 bg-nothing-white text-nothing-black hover:bg-neutral-200 shadow-none border border-transparent">
+                                    <span className="flex items-center gap-2">
+                                        <Map size={18} />
+                                        Dashboard Tour
+                                    </span>
+                                </Button>
+                            ) : (
+                                <Button onClick={handleNext} className="h-12 px-6">
+                                    {currentIndex === slides.length - 1 ? "Finish" : "Next"}
+                                    {currentIndex === slides.length - 1 ? <CheckCircle2 className="ml-2" size={18} /> : <ArrowRight className="ml-2" size={18} />}
+                                </Button>
+                            )}
                         </div>
                     </div>
 

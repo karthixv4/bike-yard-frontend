@@ -15,6 +15,8 @@ import BuyerOrderModal from './BuyerOrderModal';
 import BikeHistoryModal from './BikeHistoryModal';
 import WelcomeFeatureModal from '../common/WelcomeFeatureModal';
 import Footer from '../common/Footer';
+import UserDashboardTour from './UserDashboardTour';
+
 import { openStatusModal } from '../../store/slices/uiSlice';
 import {
     ShoppingBag,
@@ -36,7 +38,9 @@ import {
     AlertTriangle,
     Zap,
     Edit2,
-    Grid
+    Grid,
+    SlidersHorizontal,
+    X
 } from 'lucide-react';
 
 const PartCard = ({ part, inCartQty, onAdd, onClick }) => {
@@ -45,6 +49,9 @@ const PartCard = ({ part, inCartQty, onAdd, onClick }) => {
 
     return (
         <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             onClick={onClick}
             className="bg-nothing-dark border border-nothing-gray rounded-2xl p-5 flex flex-col gap-3 group hover:border-nothing-white transition-colors cursor-pointer h-full min-w-[200px] relative overflow-hidden"
         >
@@ -95,6 +102,9 @@ const PartCard = ({ part, inCartQty, onAdd, onClick }) => {
 
 const BikeCard = ({ bike, onClick }) => (
     <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
         onClick={onClick}
         className="bg-nothing-dark border border-nothing-gray rounded-3xl overflow-hidden cursor-pointer group hover:border-nothing-white transition-all h-full flex flex-col"
     >
@@ -150,6 +160,11 @@ const UserDashboard = () => {
     const { cart, garage, inspections, dashboard, orders, selectedInspection, selectedOrder } = useSelector((state) => state.buyer);
     const { loading: dashboardLoading } = dashboard;
 
+    // --- Filter State ---
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [priceRange, setPriceRange] = useState(500000);
+    const [selectedCategory, setSelectedCategory] = useState('all');
+
     // --- Local State ---
     const [activeTab, setActiveTab] = useState('home');
     const [isCartOpen, setIsCartOpen] = useState(false);
@@ -177,6 +192,13 @@ const UserDashboard = () => {
         dispatch(fetchBuyerInspections());
         dispatch(fetchBuyerOrders());
     }, [dispatch]);
+    useEffect(() => {
+        if (marketFilter === 'parts') {
+            setPriceRange(20000); // 20k max for parts default
+        } else {
+            setPriceRange(500000); // 5L max for bikes/all
+        }
+    }, [marketFilter]);
 
     // --- Handlers ---
 
@@ -242,9 +264,18 @@ const UserDashboard = () => {
     };
 
     // --- Filter Logic ---
-    const filteredBikes = dashboard.bikes.data.filter(b => b.title.toLowerCase().includes(searchQuery.toLowerCase()));
-    const filteredParts = dashboard.parts.data.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    const availableCategories = ['all', ...Array.from(new Set(dashboard.parts.data.map(p => p.category || 'General')))];
 
+    const filteredBikes = dashboard.bikes.data.filter(b =>
+        b.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        b.price <= priceRange
+    );
+
+    const filteredParts = dashboard.parts.data.filter(p =>
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        p.price <= priceRange &&
+        (selectedCategory === 'all' || p.category === selectedCategory)
+    );
     // --- Render Content ---
 
     return (
@@ -267,6 +298,7 @@ const UserDashboard = () => {
                 {selectedInspection && <BuyerInspectionModal />}
                 {selectedOrder && <BuyerOrderModal onCancelClick={(id) => setOrderToCancel(id)} />}
                 <WelcomeFeatureModal />
+                <UserDashboardTour />
 
                 {/* Cancel Confirmation */}
                 {orderToCancel && (
@@ -321,6 +353,7 @@ const UserDashboard = () => {
                     {['home', 'market', 'garage', 'activity', 'profile'].map((tab) => (
                         <button
                             key={tab}
+                            id={`tab-${tab}`}
                             onClick={() => setActiveTab(tab)}
                             className={`pb-4 px-2 text-sm font-mono uppercase tracking-widest transition-colors relative ${activeTab === tab ? 'text-nothing-white' : 'text-nothing-muted hover:text-nothing-white'
                                 }`}
@@ -414,7 +447,7 @@ const UserDashboard = () => {
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                         {/* Market Search & Filter Bar */}
-                        <div className="flex flex-col md:flex-row gap-4 items-center">
+                        <div className="flex flex-col gap-4">
                             <div className="relative w-full md:flex-1">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-nothing-muted" size={20} />
                                 <input
@@ -426,22 +459,93 @@ const UserDashboard = () => {
                                     autoFocus
                                 />
                             </div>
-                            <div className="flex gap-2 p-1 bg-nothing-dark border border-nothing-gray rounded-xl overflow-hidden shrink-0">
-                                {['all', 'bikes', 'parts'].map((f) => (
-                                    <button
-                                        key={f}
-                                        onClick={() => setMarketFilter(f)}
-                                        className={`px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-widest transition-all ${marketFilter === f
-                                            ? 'bg-nothing-white text-nothing-black'
-                                            : 'text-nothing-muted hover:text-nothing-white'
-                                            }`}
-                                    >
-                                        {f}
-                                    </button>
-                                ))}
+                            <div className="flex gap-2 shrink-0 w-full md:w-auto">
+                                <div className="flex gap-2 p-1 bg-nothing-dark border border-nothing-gray rounded-xl overflow-hidden flex-1 md:flex-none justify-center">
+                                    {['all', 'bikes', 'parts'].map((f) => (
+                                        <button
+                                            key={f}
+                                            onClick={() => setMarketFilter(f)}
+                                            className={`px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-widest transition-all flex-1 md:flex-none ${marketFilter === f
+                                                ? 'bg-nothing-white text-nothing-black'
+                                                : 'text-nothing-muted hover:text-nothing-white'
+                                                }`}
+                                        >
+                                            {f}
+                                        </button>
+                                    ))}
+                                </div>
+                                {/* Filter Button */}
+                                <button
+                                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                                    className={`p-3 rounded-xl border transition-colors ${isFilterOpen
+                                        ? 'bg-nothing-white text-nothing-black border-nothing-white'
+                                        : 'bg-nothing-dark border-nothing-gray text-nothing-muted hover:border-nothing-white hover:text-nothing-white'
+                                        }`}
+                                >
+                                    <SlidersHorizontal size={20} />
+                                </button>
                             </div>
                         </div>
+                        {/* Collapsible Filter Panel */}
+                        <AnimatePresence>
+                            {isFilterOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="p-6 bg-nothing-dark/50 border border-nothing-gray rounded-2xl space-y-6">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h3 className="text-sm font-medium text-nothing-white uppercase tracking-widest">Filters</h3>
+                                            <button onClick={() => setIsFilterOpen(false)} className="text-nothing-muted hover:text-nothing-white"><X size={16} /></button>
+                                        </div>
 
+                                        {/* Price Slider */}
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-end">
+                                                <label className="text-xs font-mono text-nothing-muted uppercase">Max Price</label>
+                                                <span className="text-sm font-mono text-nothing-white">₹{priceRange.toLocaleString()}</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max={marketFilter === 'parts' ? 50000 : 800000}
+                                                step={1000}
+                                                value={priceRange}
+                                                onChange={(e) => setPriceRange(Number(e.target.value))}
+                                                className="w-full h-1 bg-nothing-gray rounded-lg appearance-none cursor-pointer accent-nothing-red"
+                                            />
+                                            <div className="flex justify-between text-[10px] text-nothing-muted font-mono">
+                                                <span>₹0</span>
+                                                <span>₹{(marketFilter === 'parts' ? 50000 : 800000).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Categories (Only for Parts/All) */}
+                                        {marketFilter !== 'bikes' && (
+                                            <div className="space-y-3 pt-4 border-t border-nothing-gray/30">
+                                                <label className="text-xs font-mono text-nothing-muted uppercase">Categories</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {availableCategories.map(cat => (
+                                                        <button
+                                                            key={cat}
+                                                            onClick={() => setSelectedCategory(cat)}
+                                                            className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase transition-colors border ${selectedCategory === cat
+                                                                ? 'bg-nothing-red/10 border-nothing-red text-nothing-red'
+                                                                : 'bg-nothing-black border-nothing-gray text-nothing-muted hover:border-nothing-white hover:text-nothing-white'
+                                                                }`}
+                                                        >
+                                                            {cat}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                         {/* Content Grid */}
                         <div className="space-y-10">
 
@@ -453,11 +557,11 @@ const UserDashboard = () => {
                                             <Bike size={18} /> Bikes
                                         </h3>
                                     )}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {filteredBikes.map(bike => (
                                             <BikeCard key={bike.id} bike={bike} onClick={() => setSelectedBike(bike)} />
                                         ))}
-                                    </div>
+                                    </motion.div>
                                 </div>
                             )}
 
@@ -469,7 +573,7 @@ const UserDashboard = () => {
                                             <Grid size={18} /> Parts & Accessories
                                         </h3>
                                     )}
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                         {filteredParts.map(part => (
                                             <PartCard
                                                 key={part.id}
@@ -479,7 +583,7 @@ const UserDashboard = () => {
                                                 onClick={() => setSelectedPart(part)}
                                             />
                                         ))}
-                                    </div>
+                                    </motion.div>
                                 </div>
                             )}
 
@@ -488,199 +592,207 @@ const UserDashboard = () => {
                                 <div className="py-20 text-center text-nothing-muted">
                                     <Search size={48} className="mx-auto mb-4 opacity-20" />
                                     <p className="font-mono uppercase tracking-widest">No results found.</p>
-                                    <p className="text-sm mt-2 opacity-60">Try adjusting your search or filters.</p>
+                                    <p className="text-sm mt-2 opacity-60">Try adjusting your filters or price range.</p>
+                                    {priceRange < 1000 && <p className="text-xs text-nothing-red mt-2">Price filter might be too low.</p>}
                                 </div>
                             )}
                         </div>
                     </div>
-                )}
+                )
+                }
 
                 {/* --- GARAGE TAB --- */}
-                {activeTab === 'garage' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h2 className="text-3xl font-medium tracking-tight text-nothing-white">My Garage.</h2>
-                                <p className="text-nothing-muted text-sm mt-1">Manage your machines and service history.</p>
-                            </div>
-                            <button
-                                onClick={() => setIsAddBikeOpen(true)}
-                                className="flex items-center gap-2 bg-nothing-white text-nothing-black px-5 py-3 rounded-full font-medium hover:bg-neutral-200 transition-colors"
-                            >
-                                <Plus size={18} /> Add Bike
-                            </button>
-                        </div>
-
-                        {garage.length === 0 ? (
-                            <div className="border border-dashed border-nothing-gray rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4 bg-nothing-dark/30">
-                                <div className="w-16 h-16 bg-nothing-black rounded-full flex items-center justify-center border border-nothing-gray">
-                                    <Bike size={24} className="text-nothing-muted" />
+                {
+                    activeTab === 'garage' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-3xl font-medium tracking-tight text-nothing-white">My Garage.</h2>
+                                    <p className="text-nothing-muted text-sm mt-1">Manage your machines and service history.</p>
                                 </div>
-                                <h3 className="text-xl font-medium text-nothing-white">Your garage is empty.</h3>
-                                <p className="text-nothing-muted max-w-sm">Add your bike to get personalized part recommendations and quick service booking.</p>
+                                <button
+                                    onClick={() => setIsAddBikeOpen(true)}
+                                    className="flex items-center gap-2 bg-nothing-white text-nothing-black px-5 py-3 rounded-full font-medium hover:bg-neutral-200 transition-colors"
+                                >
+                                    <Plus size={18} /> Add Bike
+                                </button>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {garage.map((bike) => (
-                                    <div key={bike.id} className="bg-nothing-dark border border-nothing-gray rounded-3xl p-6 relative overflow-hidden group hover:border-nothing-white transition-colors">
-                                        <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                                            <Bike size={120} />
-                                        </div>
 
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="w-12 h-12 bg-nothing-black rounded-xl flex items-center justify-center border border-nothing-gray">
-                                                    <Bike size={24} className="text-nothing-white" />
-                                                </div>
-                                                {/* Edit Button Logic */}
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleEditBike(bike); }}
-                                                        className="p-2 rounded-full bg-nothing-black border border-nothing-gray text-nothing-muted hover:text-white hover:border-white transition-colors"
-                                                        title="Edit Details"
-                                                    >
-                                                        <Edit2 size={16} />
-                                                    </button>
-                                                    {bike.registration && (
-                                                        <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-mono uppercase tracking-widest text-nothing-muted h-fit">
-                                                            {bike.registration}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <h3 className="text-2xl font-medium text-nothing-white mb-1">{bike.model}</h3>
-                                            <p className="text-nothing-muted text-sm">{bike.brand} • {bike.year}</p>
-
-                                            <div className="mt-8 pt-6 border-t border-nothing-gray flex gap-4">
-                                                <button
-                                                    onClick={() => handleRequestService(bike)}
-                                                    className="flex-1 py-3 rounded-xl bg-nothing-white text-nothing-black font-medium text-sm hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
-                                                >
-                                                    <Wrench size={16} /> Request Service
-                                                </button>
-                                                <button
-                                                    onClick={() => handleViewHistory(bike)}
-                                                    className="flex-1 py-3 rounded-xl border border-nothing-gray text-nothing-white font-medium text-sm hover:bg-white/5 transition-colors"
-                                                >
-                                                    Service History
-                                                </button>
-                                            </div>
-                                        </div>
+                            {garage.length === 0 ? (
+                                <div className="border border-dashed border-nothing-gray rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4 bg-nothing-dark/30">
+                                    <div className="w-16 h-16 bg-nothing-black rounded-full flex items-center justify-center border border-nothing-gray">
+                                        <Bike size={24} className="text-nothing-muted" />
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                                    <h3 className="text-xl font-medium text-nothing-white">Your garage is empty.</h3>
+                                    <p className="text-nothing-muted max-w-sm">Add your bike to get personalized part recommendations and quick service booking.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {garage.map((bike) => (
+                                        <div key={bike.id} className="bg-nothing-dark border border-nothing-gray rounded-3xl p-6 relative overflow-hidden group hover:border-nothing-white transition-colors">
+                                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                                                <Bike size={120} />
+                                            </div>
+
+                                            <div className="relative z-10">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="w-12 h-12 bg-nothing-black rounded-xl flex items-center justify-center border border-nothing-gray">
+                                                        <Bike size={24} className="text-nothing-white" />
+                                                    </div>
+                                                    {/* Edit Button Logic */}
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleEditBike(bike); }}
+                                                            className="p-2 rounded-full bg-nothing-black border border-nothing-gray text-nothing-muted hover:text-white hover:border-white transition-colors"
+                                                            title="Edit Details"
+                                                        >
+                                                            <Edit2 size={16} />
+                                                        </button>
+                                                        {bike.registration && (
+                                                            <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-mono uppercase tracking-widest text-nothing-muted h-fit">
+                                                                {bike.registration}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <h3 className="text-2xl font-medium text-nothing-white mb-1">{bike.model}</h3>
+                                                <p className="text-nothing-muted text-sm">{bike.brand} • {bike.year}</p>
+
+                                                <div className="mt-8 pt-6 border-t border-nothing-gray flex gap-4">
+                                                    <button
+                                                        onClick={() => handleRequestService(bike)}
+                                                        className="flex-1 py-3 rounded-xl bg-nothing-white text-nothing-black font-medium text-sm hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <Wrench size={16} /> Request Service
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleViewHistory(bike)}
+                                                        className="flex-1 py-3 rounded-xl border border-nothing-gray text-nothing-white font-medium text-sm hover:bg-white/5 transition-colors"
+                                                    >
+                                                        Service History
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
 
                 {/* --- ACTIVITY TAB (Orders & Inspections) --- */}
-                {activeTab === 'activity' && (
-                    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {
+                    activeTab === 'activity' && (
+                        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                        {/* Inspections / Service Requests */}
-                        <section className="space-y-6">
-                            <h2 className="text-2xl font-medium tracking-tight text-nothing-white flex items-center gap-3">
-                                <Hourglass size={24} className="text-nothing-red" />
-                                Active Requests
-                            </h2>
-                            {inspections.length === 0 ? (
-                                <p className="text-nothing-muted text-sm font-mono pl-1">No active inspection or service requests.</p>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {inspections.map((ins) => (
-                                        <div
-                                            key={ins.id}
-                                            onClick={() => handleInspectionClick(ins.id)}
-                                            className="bg-nothing-dark border border-nothing-gray rounded-2xl p-5 hover:border-nothing-white transition-colors cursor-pointer group"
-                                        >
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    {ins.status === 'COMPLETED' ? <CheckCircle2 className="text-green-500" size={18} /> :
-                                                        ins.status === 'CANCELLED' ? <XCircle className="text-neutral-500" size={18} /> :
-                                                            <Clock className="text-yellow-500" size={18} />}
-                                                    <span className={`text-xs font-mono uppercase tracking-widest ${ins.status === 'COMPLETED' ? 'text-green-500' : 'text-nothing-white'}`}>
-                                                        {ins.status.replace('_', ' ')}
+                            {/* Inspections / Service Requests */}
+                            <section className="space-y-6">
+                                <h2 className="text-2xl font-medium tracking-tight text-nothing-white flex items-center gap-3">
+                                    <Hourglass size={24} className="text-nothing-red" />
+                                    Active Requests
+                                </h2>
+                                {inspections.length === 0 ? (
+                                    <p className="text-nothing-muted text-sm font-mono pl-1">No active inspection or service requests.</p>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {inspections.map((ins) => (
+                                            <div
+                                                key={ins.id}
+                                                onClick={() => handleInspectionClick(ins.id)}
+                                                className="bg-nothing-dark border border-nothing-gray rounded-2xl p-5 hover:border-nothing-white transition-colors cursor-pointer group"
+                                            >
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        {ins.status === 'COMPLETED' ? <CheckCircle2 className="text-green-500" size={18} /> :
+                                                            ins.status === 'CANCELLED' ? <XCircle className="text-neutral-500" size={18} /> :
+                                                                <Clock className="text-yellow-500" size={18} />}
+                                                        <span className={`text-xs font-mono uppercase tracking-widest ${ins.status === 'COMPLETED' ? 'text-green-500' : 'text-nothing-white'}`}>
+                                                            {ins.status.replace('_', ' ')}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-xs text-nothing-muted font-mono">{ins.date}</span>
+                                                </div>
+                                                <h3 className="font-medium text-lg text-nothing-white mb-1 group-hover:text-nothing-red transition-colors">
+                                                    {ins.type === 'SERVICE' ? (ins.serviceType || 'Service Request') : 'Inspection Request'}
+                                                </h3>
+                                                <p className="text-sm text-nothing-muted mb-4">{ins.bikeName}</p>
+                                                <div className="flex items-center justify-between pt-3 border-t border-nothing-gray/50">
+                                                    <div className="flex items-center gap-2 text-xs text-nothing-muted">
+                                                        {ins.mechanicName ? (
+                                                            <><Wrench size={12} /> {ins.mechanicName}</>
+                                                        ) : (
+                                                            <><Search size={12} /> Finding Mechanic...</>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-sm font-mono text-nothing-white">₹{ins.offerAmount}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+
+                            {/* Orders */}
+                            <section className="space-y-6">
+                                <h2 className="text-2xl font-medium tracking-tight text-nothing-white flex items-center gap-3">
+                                    <Package size={24} className="text-blue-500" />
+                                    Order History
+                                </h2>
+                                {orders.length === 0 ? (
+                                    <div className="p-8 border border-dashed border-nothing-gray rounded-2xl text-center text-nothing-muted text-sm font-mono">
+                                        You haven't ordered anything yet.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {orders.map((order) => (
+                                            <div
+                                                key={order.id}
+                                                onClick={() => handleOrderClick(order)}
+                                                className="bg-nothing-dark border border-nothing-gray rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 hover:border-nothing-white transition-colors cursor-pointer group"
+                                            >
+                                                <div className="flex items-center gap-4 w-full md:w-auto">
+                                                    <div className="w-12 h-12 bg-nothing-black rounded-xl flex items-center justify-center border border-nothing-gray shrink-0">
+                                                        <Package size={20} className="text-nothing-muted group-hover:text-nothing-white" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-medium text-nothing-white">Order #{order.id.slice(-6)}</h4>
+                                                        <p className="text-xs text-nothing-muted font-mono mt-1">
+                                                            {order.items.length} Items • {new Date(order.createdAt).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+                                                    <span className={`text-xs font-mono uppercase px-3 py-1 rounded-full border ${order.status === 'DELIVERED' ? 'border-green-500/30 text-green-500 bg-green-500/10' :
+                                                        order.status === 'CANCELLED' ? 'border-nothing-red/30 text-nothing-red bg-nothing-red/10' :
+                                                            'border-white/20 text-nothing-muted'
+                                                        }`}>
+                                                        {order.status}
                                                     </span>
-                                                </div>
-                                                <span className="text-xs text-nothing-muted font-mono">{ins.date}</span>
-                                            </div>
-                                            <h3 className="font-medium text-lg text-nothing-white mb-1 group-hover:text-nothing-red transition-colors">
-                                                {ins.type === 'SERVICE' ? (ins.serviceType || 'Service Request') : 'Inspection Request'}
-                                            </h3>
-                                            <p className="text-sm text-nothing-muted mb-4">{ins.bikeName}</p>
-                                            <div className="flex items-center justify-between pt-3 border-t border-nothing-gray/50">
-                                                <div className="flex items-center gap-2 text-xs text-nothing-muted">
-                                                    {ins.mechanicName ? (
-                                                        <><Wrench size={12} /> {ins.mechanicName}</>
-                                                    ) : (
-                                                        <><Search size={12} /> Finding Mechanic...</>
-                                                    )}
-                                                </div>
-                                                <span className="text-sm font-mono text-nothing-white">₹{ins.offerAmount}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </section>
-
-                        {/* Orders */}
-                        <section className="space-y-6">
-                            <h2 className="text-2xl font-medium tracking-tight text-nothing-white flex items-center gap-3">
-                                <Package size={24} className="text-blue-500" />
-                                Order History
-                            </h2>
-                            {orders.length === 0 ? (
-                                <div className="p-8 border border-dashed border-nothing-gray rounded-2xl text-center text-nothing-muted text-sm font-mono">
-                                    You haven't ordered anything yet.
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {orders.map((order) => (
-                                        <div
-                                            key={order.id}
-                                            onClick={() => handleOrderClick(order)}
-                                            className="bg-nothing-dark border border-nothing-gray rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 hover:border-nothing-white transition-colors cursor-pointer group"
-                                        >
-                                            <div className="flex items-center gap-4 w-full md:w-auto">
-                                                <div className="w-12 h-12 bg-nothing-black rounded-xl flex items-center justify-center border border-nothing-gray shrink-0">
-                                                    <Package size={20} className="text-nothing-muted group-hover:text-nothing-white" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-medium text-nothing-white">Order #{order.id.slice(-6)}</h4>
-                                                    <p className="text-xs text-nothing-muted font-mono mt-1">
-                                                        {order.items.length} Items • {new Date(order.createdAt).toLocaleDateString()}
-                                                    </p>
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-medium text-nothing-white">₹{order.totalAmount.toLocaleString()}</p>
+                                                    </div>
+                                                    <ChevronRight size={16} className="text-nothing-muted" />
                                                 </div>
                                             </div>
-
-                                            <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                                                <span className={`text-xs font-mono uppercase px-3 py-1 rounded-full border ${order.status === 'DELIVERED' ? 'border-green-500/30 text-green-500 bg-green-500/10' :
-                                                    order.status === 'CANCELLED' ? 'border-nothing-red/30 text-nothing-red bg-nothing-red/10' :
-                                                        'border-white/20 text-nothing-muted'
-                                                    }`}>
-                                                    {order.status}
-                                                </span>
-                                                <div className="text-right">
-                                                    <p className="text-sm font-medium text-nothing-white">₹{order.totalAmount.toLocaleString()}</p>
-                                                </div>
-                                                <ChevronRight size={16} className="text-nothing-muted" />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </section>
-                    </div>
-                )}
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        </div>
+                    )
+                }
 
                 {/* --- PROFILE TAB --- */}
-                {activeTab === 'profile' && (
-                    <UserProfile />
-                )}
+                {
+                    activeTab === 'profile' && (
+                        <UserProfile />
+                    )
+                }
 
-            </main>
+            </main >
 
             <Footer />
 
@@ -702,7 +814,7 @@ const UserDashboard = () => {
                 )}
             </AnimatePresence>
 
-        </div>
+        </div >
     );
 };
 
