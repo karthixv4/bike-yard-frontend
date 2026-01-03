@@ -5,54 +5,55 @@ import RoleCard from './RoleCard';
 import Button from '../common/Button';
 
 const roles = [
-  { id: 'user', label: 'Rider', subLabel: 'BUY & INSPECT', icon: Bike },
-  { id: 'seller', label: 'Seller', subLabel: 'LIST INVENTORY', icon: User },
-  { id: 'mechanic', label: 'Mechanic', subLabel: 'OFFER SERVICES', icon: Wrench },
+  { id: 'user', label: 'Rider', subLabel: 'Personal Garage', icon: Bike },
+  { id: 'seller', label: 'Seller', subLabel: 'Business Hub', icon: User },
+  { id: 'mechanic', label: 'Mechanic', subLabel: 'Service Partner', icon: Wrench },
 ];
 
-const RoleSelection = ({ 
-  selectedRole, 
-  onSelectRole, 
+const RoleSelection = ({
+  selectedRole,
+  onSelectRole,
   onContinue,
   onLogin
 }) => {
   return (
-    <div className="flex flex-col h-full">
-      {/* Top Navigation for Login - Shifted left to make room for Theme Toggle */}
-      <div className="absolute top-8 right-20 z-20">
-        <button 
+    <div className="flex flex-col h-full min-h-screen">
+      {/* Top Navigation for Login */}
+      <div className="absolute top-8 right-8 md:right-20 z-20">
+        <button
           onClick={onLogin}
-          className="text-sm font-mono text-nothing-muted hover:text-nothing-white transition-colors tracking-widest uppercase"
+          className="text-xs md:text-sm font-mono text-nothing-muted hover:text-nothing-white transition-colors tracking-widest uppercase border-b border-transparent hover:border-nothing-red pb-1"
         >
           Have an account? Login
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center px-6 md:px-12 lg:px-24 max-w-7xl mx-auto w-full z-10 pb-20 pt-20">
-        
-        <div className="mb-12 space-y-4">
-          <motion.h1 
+      <div className="flex-1 flex flex-col justify-center px-6 md:px-12 lg:px-24 max-w-7xl mx-auto w-full z-10 py-24">
+
+        <div className="mb-16 space-y-6 max-w-2xl">
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-medium tracking-tighter text-nothing-white"
+            className="text-5xl md:text-7xl font-medium tracking-tighter text-nothing-white leading-[0.9]"
           >
-            Tell us what you do?
+            Identify your <br />
+            <span className="text-nothing-muted">role in the yard.</span>
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-nothing-muted text-lg md:text-xl max-w-md font-light"
+            className="text-nothing-muted text-lg font-light border-l-2 border-nothing-red pl-4"
           >
-            To give you the best experience we need to know your role.
+            Select your profile type to customize your dashboard experience.
           </motion.p>
         </div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8"
         >
           {roles.map((role) => (
             <RoleCard
@@ -68,25 +69,25 @@ const RoleSelection = ({
         </motion.div>
 
         {/* Action Bar */}
-        <motion.div 
-          className="mt-16 flex justify-end items-center"
+        <motion.div
+          className="mt-12 md:mt-20 flex justify-end items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
-          <div className="flex gap-4 items-center w-full md:w-auto">
-             <div className="hidden md:block font-mono text-xs text-nothing-muted mr-4">
-               {selectedRole ? 'STEP 1 COMPLETE' : 'SELECT AN OPTION'}
-             </div>
-             <Button 
-               onClick={onContinue} 
-               disabled={!selectedRole}
-               fullWidth={true}
-               withArrow
-               className="md:w-auto"
-             >
-               Continue
-             </Button>
+          <div className="flex flex-col md:flex-row gap-6 items-center w-full md:w-auto">
+            <div className="hidden md:block font-mono text-[10px] text-nothing-muted uppercase tracking-[0.2em]">
+              {selectedRole ? 'Selection Confirmed' : 'Waiting for Input...'}
+            </div>
+            <Button
+              onClick={onContinue}
+              disabled={!selectedRole}
+              fullWidth={true}
+              withArrow
+              className="md:w-auto px-10 py-4"
+            >
+              Continue
+            </Button>
           </div>
         </motion.div>
       </div>

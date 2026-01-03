@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Key, Copy, ChevronDown, User, Wrench, ShoppingBag, Bike } from 'lucide-react';
+import { Key, Copy, ChevronDown, User, Wrench, ShoppingBag, Bike, X } from 'lucide-react';
 
 const credentials = [
     {
@@ -36,11 +36,16 @@ const credentials = [
 const DemoCredentials = () => {
     const [isOpen, setIsOpen] = useState(true);
     const [copied, setCopied] = useState(null);
-
+    const [isAutoClosing, setIsAutoClosing] = useState(true);
     const handleCopy = (text) => {
         navigator.clipboard.writeText(text);
         setCopied(text);
-        setTimeout(() => setCopied(null), 2000);
+        setIsAutoClosing(false);
+    };
+
+    const handleManualClose = () => {
+        setIsOpen(false);
+        setIsAutoClosing(false);
     };
 
     return (
@@ -51,7 +56,9 @@ const DemoCredentials = () => {
                         initial={{ opacity: 0, y: 20, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                        className="bg-nothing-dark/95 backdrop-blur-xl border border-nothing-gray rounded-2xl shadow-2xl w-80 overflow-hidden"
+                        onHoverStart={() => setIsAutoClosing(false)}
+
+                        className="bg-nothing-dark/95 backdrop-blur-xl border border-nothing-gray rounded-2xl shadow-2xl w-80 overflow-hidden relative"
                     >
                         {/* Header */}
                         <div className="p-4 border-b border-nothing-gray flex justify-between items-start bg-nothing-black/50">
@@ -104,10 +111,24 @@ const DemoCredentials = () => {
                         </div>
 
                         <div className="p-3 bg-nothing-black/30 text-center border-t border-nothing-gray">
-                            <p className="text-[10px] text-nothing-muted italic">
-                                Password for all: <span className="font-mono text-nothing-white">123456</span>
+                            <p className="text-xs text-nothing-muted">
+                                Password for all: <span className="font-mono text-sm font-bold text-nothing-white ml-1">123456</span>
                             </p>
                         </div>
+                        {/* Auto-Close Progress Bar */}
+                        {isAutoClosing && (
+                            <div className="absolute bottom-0 left-0 w-full h-1 bg-nothing-dark">
+                                <motion.div
+                                    initial={{ width: "0%" }}
+                                    animate={{ width: "100%" }}
+                                    transition={{ duration: 4, ease: "linear" }}
+                                    onAnimationComplete={() => {
+                                        if (isAutoClosing) setIsOpen(false);
+                                    }}
+                                    className="h-full bg-nothing-red"
+                                />
+                            </div>
+                        )}
                     </motion.div>
                 ) : (
                     <motion.button
