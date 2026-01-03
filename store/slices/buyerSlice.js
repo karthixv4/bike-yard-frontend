@@ -104,13 +104,12 @@ export const fetchCart = createAsyncThunk(
 export const addItemToCart = createAsyncThunk(
   'buyer/addToCart',
   async (payload, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('adding-to-cart'));
     try {
       await buyerService.addToCart(payload.productId, payload.quantity);
-      // Refresh cart to get the full object with product details
       dispatch(fetchCart());
       return payload.productId;
     } catch (error) {
-      // Extract meaningful message from backend (e.g., "Only 2 items left in stock")
       const message = error.response?.data?.message || 'Could not add item to cart.';
 
       dispatch(openStatusModal({
@@ -119,6 +118,8 @@ export const addItemToCart = createAsyncThunk(
         message: message,
       }));
       return rejectWithValue(message);
+    } finally {
+      dispatch(setLoader(null));
     }
   }
 );
@@ -172,7 +173,7 @@ export const checkoutCart = createAsyncThunk(
       }));
       // Refresh orders list after successful checkout
       dispatch(fetchBuyerOrders());
-      // Refresh empty cart
+      dispatch(fetchDashboardData({ bikePage: 1, bikeLimit: 10, accPage: 1, accLimit: 10 }));
       dispatch(fetchCart());
       return response;
     } catch (error) {
@@ -297,12 +298,20 @@ export const fetchDashboardData = createAsyncThunk(
 export const removeItemFromCart = createAsyncThunk(
   'buyer/removeFromCart',
   async (cartItemId, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('removing-from-cart'));
     try {
       await buyerService.removeFromCart(cartItemId);
       dispatch(fetchCart());
       return cartItemId;
     } catch (error) {
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Remove Failed',
+        message: 'Could not remove item from cart.',
+      }));
       return rejectWithValue('Failed to remove item');
+    } finally {
+      dispatch(setLoader(null));
     }
   }
 );

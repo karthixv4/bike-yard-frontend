@@ -111,9 +111,24 @@ const DemoCredentials = () => {
                         </div>
 
                         <div className="p-3 bg-nothing-black/30 text-center border-t border-nothing-gray">
-                            <p className="text-xs text-nothing-muted">
-                                Password for all: <span className="font-mono text-sm font-bold text-nothing-white ml-1">123456</span>
-                            </p>
+                            <div className="flex items-center justify-center gap-2">
+                                <p className="text-xs text-nothing-muted">
+                                    Password for all: <span className="font-mono text-sm font-bold text-nothing-white ml-1">123456</span>
+                                </p>
+                                <button
+                                    onClick={() => handleCopy('123456')}
+                                    className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-nothing-muted hover:text-nothing-white transition-colors relative"
+                                    title="Copy Password"
+                                >
+                                    {copied === '123456' ? (
+                                        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-green-500 font-bold text-[10px]">
+                                            COPIED
+                                        </motion.span>
+                                    ) : (
+                                        <Copy size={12} />
+                                    )}
+                                </button>
+                            </div>
                         </div>
                         {/* Auto-Close Progress Bar */}
                         {isAutoClosing && (

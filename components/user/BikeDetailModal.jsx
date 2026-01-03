@@ -64,13 +64,16 @@ const BikeDetailModal = ({ bike, onClose }) => {
   };
 
   const handleAddToCart = () => {
-    dispatch(addItemToCart({ productId: bike.id, quantity: 1 }));
-    dispatch(openStatusModal({
-      type: 'success',
-      title: 'Added to Cart',
-      message: 'Bike has been added to your cart.',
-      actionLabel: 'Keep Browsing'
-    }));
+    dispatch(addItemToCart({ productId: bike.id, quantity: 1 })).then((res) => {
+      if (res.meta.requestStatus === 'fulfilled') {
+        dispatch(openStatusModal({
+          type: 'success',
+          title: 'Added to Cart',
+          message: 'Bike has been added to your cart.',
+          actionLabel: 'Keep Browsing'
+        }));
+      }
+    });
   };
 
   const handleRemoveFromCart = () => {

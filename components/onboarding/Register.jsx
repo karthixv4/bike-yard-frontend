@@ -52,15 +52,13 @@ const Register = ({ selectedRole, onBack, onLogin }) => {
   const handleRegister = () => {
     if (!validateForm()) return;
 
-    // Collect all data: role, detailed info, and basic credentials
     const completeData = {
       ...form,
+      name: `${form.firstName} ${form.lastName}`,
       role: selectedRole,
       roleDetails: onboarding.details
     };
 
-    // Dispatch async action
-    // @ts-ignore
     dispatch(registerUser(completeData));
   };
 

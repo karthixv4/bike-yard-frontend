@@ -186,13 +186,16 @@ const UserDashboard = () => {
     };
 
     const handleAddToCart = (part) => {
-        dispatch(addItemToCart({ productId: part.id, quantity: 1 }));
-        dispatch(openStatusModal({
-            type: 'success',
-            title: 'Added to Cart',
-            message: `${part.title} added to cart.`,
-            actionLabel: 'Continue'
-        }));
+        dispatch(addItemToCart({ productId: part.id, quantity: 1 })).then((res) => {
+            if (res.meta.requestStatus === 'fulfilled') {
+                dispatch(openStatusModal({
+                    type: 'success',
+                    title: 'Added to Cart',
+                    message: `${part.title} added to cart.`,
+                    actionLabel: 'Continue'
+                }));
+            }
+        });
     };
 
     const handleRequestService = (bike) => {
