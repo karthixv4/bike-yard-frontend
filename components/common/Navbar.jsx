@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, User, Bell, Check, X, Info, AlertTriangle, Bike } from 'lucide-react';
+import { LogOut, User, Bell, Check, X, Info, AlertTriangle, Bike, Sparkles } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
-import { markAllNotificationsRead, clearNotifications } from '../../store/slices/uiSlice';
+import { markAllNotificationsRead, clearNotifications, openWelcomeModal } from '../../store/slices/uiSlice';
 import ThemeToggle from './ThemeToggle';
 import Button from './Button';
 
@@ -39,6 +39,9 @@ const Navbar = ({ userName, role, onProfileClick }) => {
   const handleLogoutConfirm = () => {
     dispatch(logout());
     setShowLogoutConfirm(false);
+  };
+  const handleOpenWelcomeTour = () => {
+    dispatch(openWelcomeModal());
   };
 
   const formatTime = (isoString) => {
@@ -81,8 +84,22 @@ const Navbar = ({ userName, role, onProfileClick }) => {
             </div>
           </button>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
             <ThemeToggle className="relative" />
+            <button
+              onClick={handleOpenWelcomeTour}
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-nothing-white/10 transition-colors text-nothing-muted hover:text-white border border-transparent hover:border-nothing-gray group"
+            >
+              <Sparkles size={16} className="text-yellow-500 group-hover:rotate-12 transition-transform" />
+              <span className="text-xs font-mono uppercase tracking-widest">Features</span>
+            </button>
+            {/* Mobile Icon Only */}
+            <button
+              onClick={handleOpenWelcomeTour}
+              className="flex md:hidden p-2 rounded-full hover:bg-nothing-white/10 transition-colors text-nothing-muted"
+            >
+              <Sparkles size={20} className="text-yellow-500" />
+            </button>
 
             {/* Notification Bell */}
             <div className="relative" ref={notificationRef}>

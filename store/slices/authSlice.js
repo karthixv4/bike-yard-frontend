@@ -1,9 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../../services/authService';
 import { setLoader, openStatusModal } from './uiSlice';
+import { updateMechanicProfile } from './mechanicSlice';
 
 
-// --- Helper to derive role string from backend object ---
 const deriveRoleString = (roles) => {
   if (!roles) return 'user';
   if (roles.isSeller) return 'seller';
@@ -11,7 +11,6 @@ const deriveRoleString = (roles) => {
   return 'user';
 };
 
-// --- Initial State with LocalStorage Hydration ---
 const getInitialState = () => {
   try {
     const token = localStorage.getItem('auth_token');
@@ -160,6 +159,7 @@ const authSlice = createSlice({
       state.onboarding = { role: null, details: {} };
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
+      localStorage.removeItem('welcome_tour_seen');
     },
     clearError: (state) => {
       state.error = null;
@@ -176,13 +176,12 @@ const authSlice = createSlice({
 
       const userObj = {
         ...backendUser,
-        role: derivedRole // Ensure flat 'role' exists for routing
+        role: derivedRole
       };
 
       state.user = userObj;
       state.token = action.payload.token;
 
-      // Persist
       localStorage.setItem('auth_token', action.payload.token);
       localStorage.setItem('auth_user', JSON.stringify(userObj));
     });
@@ -206,7 +205,6 @@ const authSlice = createSlice({
       state.user = userObj;
       state.token = action.payload.token;
 
-      // Persist
       localStorage.setItem('auth_token', action.payload.token);
       localStorage.setItem('auth_user', JSON.stringify(userObj));
     });
@@ -214,7 +212,6 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.error = action.payload;
     });
-    // Update Profile
     builder.addCase(updateUserProfile.fulfilled, (state, action) => {
       if (state.user) {
         const { addresses, ...userData } = action.payload;
@@ -222,12 +219,24 @@ const authSlice = createSlice({
         state.user = {
           ...state.user,
           ...userData,
-          // The API returns an array of addresses, but frontend uses a single address object for now.
-          // We pick the first one to keep state consistent.
           address: addresses && addresses.length > 0 ? addresses[0] : state.user.address
         };
 
-        // Update storage
+        localStorage.setItem('auth_user', JSON.stringify(state.user));
+      }
+    });
+    builder.addCase(updateMechanicProfile.fulfilled, (state, action) => {
+      if (state.user) {
+        const { user: updatedUserFields, ...mechanicFields } = action.payload;
+        state.user.name = updatedUserFields.name;
+        state.user.phone = updatedUserFields.phone;
+        if (updatedUserFields.email) {
+          state.user.email = updatedUserFields.email;
+        }
+        state.user.details = {
+          ...state.user.details,
+          ...mechanicFields
+        };
         localStorage.setItem('auth_user', JSON.stringify(state.user));
       }
     });

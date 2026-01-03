@@ -40,7 +40,6 @@ export const buyerService = {
   },
 
   requestInspection: async (inspectionData) => {
-    console.log("inspectionData: ", inspectionData);
     const response = await apiClient.post('/inspections/request', inspectionData);
     return response.data;
   },
@@ -63,6 +62,22 @@ export const buyerService = {
   },
   cancelInspection: async (id) => {
     const response = await apiClient.put(`/inspections/${id}/cancel`);
+    return response.data;
+  },
+  requestService: async (serviceData) => {
+    // POST /api/inspections/request with type="SERVICE"
+    const payload = { ...serviceData, type: 'SERVICE' };
+    const response = await apiClient.post('/inspections/request', payload);
+    return response.data;
+  },
+  // --- GARAGE OPERATIONS ---
+  addBikeToGarage: async (data) => {
+    const response = await apiClient.post('/user/garage', data);
+    return response.data;
+  },
+
+  fetchGarage: async () => {
+    const response = await apiClient.get('/user/garage');
     return response.data;
   },
 };

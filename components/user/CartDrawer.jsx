@@ -8,7 +8,6 @@ import Button from '../common/Button';
 const CartDrawer = ({ isOpen, onClose, onItemClick }) => {
     const dispatch = useDispatch();
     const { cart, isCartLoading } = useSelector((state) => state.buyer);
-    console.log("Cart", cart);
     // Calculate total using server cart data (accessing nested product)
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 

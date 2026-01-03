@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
-import { addItemToCart, fetchDashboardData, fetchBuyerInspections, fetchInspectionDetail, fetchBuyerOrders, fetchCart, cancelBuyerOrder, setSelectedBuyerOrder } from '../../store/slices/buyerSlice';
+import { addItemToCart, fetchDashboardData, fetchBuyerInspections, fetchInspectionDetail, fetchBuyerOrders, fetchCart, cancelBuyerOrder, setSelectedBuyerOrder, fetchGarage } from '../../store/slices/buyerSlice';
 import Navbar from '../common/Navbar';
 import BikeDetailModal from './BikeDetailModal';
 import PartDetailModal from './PartDetailModal';
 import CartDrawer from './CartDrawer';
 import UserProfile from './UserProfile';
 import AddBikeModal from './AddBikeModal';
+import ServiceRequestModal from './ServiceRequestModal';
+import WelcomeFeatureModal from '../common/WelcomeFeatureModal';
 import BuyerInspectionModal from './BuyerInspectionModal';
 import BuyerOrderModal from './BuyerOrderModal';
 
@@ -30,7 +32,8 @@ import {
     ShieldCheck,
     Hourglass,
     XCircle,
-    AlertTriangle
+    AlertTriangle,
+    Zap
 } from 'lucide-react';
 import Footer from '../common/Footer';
 
@@ -48,7 +51,7 @@ const PartCard = ({ part, inCartQty, onAdd, onClick }) => {
             className="bg-nothing-dark border border-nothing-gray rounded-2xl p-5 flex flex-col gap-3 group hover:border-nothing-white transition-colors cursor-pointer h-full min-w-[200px] relative overflow-hidden"
         >
             <div className="flex justify-between items-start relative z-10">
-                <span className="text-[10px] font-mono border border-nothing-gray px-2 py-1 rounded text-nothing-muted uppercase truncate max-w-[100px]">{part.category}</span>
+                <span className="text-[10px] font-mono border border-nothing-gray px-2 py-1 rounded text-nothing-muted uppercase truncate max-w-[100px]">{part.category || "Category"}</span>
                 {isLowStock && (
                     <span className="text-[8px] font-mono text-nothing-red uppercase tracking-widest bg-nothing-red/10 px-1.5 py-0.5 rounded border border-nothing-red/20">
                         Low Stock
@@ -124,8 +127,11 @@ const InspectionCard = ({ item, onClick }) => (
         <div className="flex justify-between items-start">
             <div>
                 <h4 className="font-medium text-lg text-nothing-white group-hover:text-nothing-red transition-colors">{item.bikeName}</h4>
-                <p className="text-xs font-mono text-nothing-muted uppercase mt-1">Inspection Order</p>
-            </div>
+                <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs font-mono text-nothing-muted uppercase">
+                        {item.type === 'SERVICE' ? `Service: ${item.serviceType}` : 'Inspection Order'}
+                    </p>
+                </div>            </div>
             <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-widest border ${item.status === 'COMPLETED' ? 'border-green-500 text-green-500' :
                 item.status === 'ACCEPTED' ? 'border-blue-500 text-blue-500' :
                     item.status === 'CANCELLED' ? 'border-nothing-gray text-nothing-muted' :
@@ -305,17 +311,15 @@ const LoadingSkeleton = () => (
 const UserDashboard = () => {
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
-    const { cart, inspections, orders, dashboard, selectedInspection, selectedOrder } = useSelector((state) => state.buyer);
-    console.log("Orders: ", orders)
-    const [activeTab, setActiveTab] = useState('market');
+    const { cart, inspections, orders, garage, dashboard, selectedInspection, selectedOrder } = useSelector((state) => state.buyer);
     const [selectedBike, setSelectedBike] = useState(null);
     const [selectedPart, setSelectedPart] = useState(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isAddBikeOpen, setIsAddBikeOpen] = useState(false);
     const [orderToCancel, setOrderToCancel] = useState(null);
+    const [serviceRequestBike, setServiceRequestBike] = useState(null);
+    const [activeTab, setActiveTab] = useState('market');
 
-
-    // Pagination State
     const [bikePage, setBikePage] = useState(1);
     const [partPage, setPartPage] = useState(1);
 
@@ -326,18 +330,19 @@ const UserDashboard = () => {
     useEffect(() => {
         dispatch(fetchDashboardData({
             bikePage: bikePage,
-            bikeLimit: 5, // Smaller limit to demonstrate pagination better
+            bikeLimit: 5,
             accPage: partPage,
             accLimit: 8
         }));
         dispatch(fetchBuyerInspections());
-        dispatch(fetchCart()); // Sync Cart on mount
+        dispatch(fetchCart());
+        dispatch(fetchGarage());
 
     }, [dispatch, bikePage, partPage]);
 
-    // Fetch Inspections when Garage tab is active
     useEffect(() => {
         if (activeTab === 'garage') {
+            dispatch(fetchGarage());
             dispatch(fetchBuyerOrders());
             dispatch(fetchBuyerInspections());
         }
@@ -441,8 +446,10 @@ const UserDashboard = () => {
                 {selectedPart && <PartDetailModal part={selectedPart} onClose={() => setSelectedPart(null)} />}
                 {isAddBikeOpen && <AddBikeModal onClose={() => setIsAddBikeOpen(false)} />}
                 {selectedInspection && <BuyerInspectionModal />}
+                {serviceRequestBike && <ServiceRequestModal bikeId={serviceRequestBike.id} bikeName={serviceRequestBike.name} onClose={() => setServiceRequestBike(null)} />}
+
                 {selectedOrder && <BuyerOrderModal onCancelClick={(id) => setOrderToCancel(id)} />}
-                {/* Cancel Order Confirmation */}
+                <WelcomeFeatureModal />
                 {orderToCancel && (
                     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
                         <motion.div
@@ -682,30 +689,39 @@ const UserDashboard = () => {
                             <div className="md:col-span-2 space-y-6">
                                 <div className="flex justify-between items-center">
                                     <h2 className="text-xl font-medium flex items-center gap-2 text-nothing-white">
-                                        <Bike size={20} className="text-nothing-white" /> My Ride
+                                        <Bike size={20} className="text-nothing-white" /> My Garage
                                     </h2>
-                                    {user?.details?.bikeModel && (
-                                        <button onClick={() => setIsAddBikeOpen(true)} className="text-xs font-mono text-nothing-red hover:underline uppercase">
-                                            Switch Bike
-                                        </button>
-                                    )}
+                                    <button onClick={() => setIsAddBikeOpen(true)} className="text-xs font-mono text-nothing-red hover:underline uppercase flex items-center gap-1">
+                                        <Plus size={14} /> Add Bike
+                                    </button>
                                 </div>
 
-                                {user?.details?.bikeModel ? (
-                                    <div className="bg-nothing-dark border border-nothing-gray rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden transition-colors">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-nothing-red/5 to-transparent pointer-events-none" />
-                                        <div className="w-32 h-32 rounded-full bg-nothing-black border border-nothing-gray flex items-center justify-center shrink-0 z-10 transition-colors">
-                                            <Bike size={48} className="text-nothing-red" strokeWidth={1} />
-                                        </div>
-                                        <div className="text-center md:text-left z-10 space-y-2">
-                                            <div className="inline-block px-3 py-1 rounded-full bg-nothing-white/10 text-xs font-mono uppercase mb-2 text-nothing-muted">Primary Bike</div>
-                                            <h3 className="text-3xl font-medium tracking-tighter text-nothing-white">{user.details.bikeModel}</h3>
-                                            <p className="text-nothing-muted">Ready for service requests and parts compatibility.</p>
-                                            <div className="pt-4 flex gap-4 justify-center md:justify-start">
-                                                <button className="text-sm font-mono border-b border-nothing-red text-nothing-white hover:text-nothing-red transition-colors pb-1">Request Service</button>
-                                                <button onClick={() => setIsAddBikeOpen(true)} className="text-sm font-mono border-b border-nothing-gray text-nothing-muted hover:text-nothing-white transition-colors pb-1">Edit Details</button>
+                                {garage.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {garage.map((bike) => (
+                                            <div key={bike.id} className="bg-nothing-dark border border-nothing-gray rounded-3xl p-8 flex flex-col justify-between items-start gap-6 relative overflow-hidden transition-colors hover:border-nothing-white group">
+                                                <div className="absolute inset-0 bg-gradient-to-r from-nothing-red/5 to-transparent pointer-events-none" />
+
+                                                <div className="flex items-start gap-4 z-10 w-full">
+                                                    <div className="w-16 h-16 rounded-full bg-nothing-black border border-nothing-gray flex items-center justify-center shrink-0 transition-colors group-hover:border-nothing-white">
+                                                        <Bike size={32} className="text-nothing-red" strokeWidth={1.5} />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-2xl font-medium tracking-tight text-nothing-white leading-tight">{bike.brand} {bike.model}</h3>
+                                                        <p className="text-nothing-muted text-sm mt-1">{bike.year} • {bike.registration || 'No Reg'}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="w-full pt-4 border-t border-nothing-gray/50 flex gap-4 z-10">
+                                                    <button
+                                                        onClick={() => setServiceRequestBike({ id: bike.id, name: `${bike.brand} ${bike.model}` })}
+                                                        className="flex-1 py-2 rounded-lg bg-nothing-white text-nothing-black text-sm font-medium hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <Wrench size={16} /> Request Service
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
                                 ) : (
                                     <div className="bg-nothing-dark border border-dashed border-nothing-gray rounded-3xl p-8 flex flex-col items-center justify-center gap-4 text-center transition-colors">
@@ -713,8 +729,8 @@ const UserDashboard = () => {
                                             <Plus size={24} className="text-nothing-muted" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-medium text-nothing-white">Add your bike</h3>
-                                            <p className="text-sm text-nothing-muted">Get personalized part recommendations.</p>
+                                            <h3 className="text-lg font-medium text-nothing-white">Your garage is empty</h3>
+                                            <p className="text-sm text-nothing-muted">Add your bike to get personalized services and parts.</p>
                                         </div>
                                         <button onClick={() => setIsAddBikeOpen(true)} className="text-sm font-mono text-nothing-red uppercase tracking-wider hover:underline">Add Bike Details</button>
                                     </div>
@@ -723,10 +739,10 @@ const UserDashboard = () => {
 
                             <div className="md:col-span-2 space-y-6">
                                 <h2 className="text-xl font-medium flex items-center gap-2 text-nothing-white">
-                                    <Clock size={20} className="text-nothing-red" /> Inspections
+                                    <Clock size={20} className="text-nothing-red" /> Active Jobs
                                 </h2>
                                 {inspections.length === 0 ? (
-                                    <p className="text-nothing-muted font-mono text-sm">No active inspections.</p>
+                                    <p className="text-nothing-muted font-mono text-sm">No active inspections or services.</p>
                                 ) : (
                                     <div className="relative -mx-6 px-6 overflow-x-auto pb-6 custom-scrollbar snap-x snap-mandatory flex gap-4">
                                         {inspections.map(ins => (
@@ -760,9 +776,9 @@ const UserDashboard = () => {
                                     </div>
                                 )}
                             </div>
-
                         </motion.div>
                     )}
+
 
                     {activeTab === 'profile' && (
                         <motion.div

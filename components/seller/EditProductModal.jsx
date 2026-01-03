@@ -11,20 +11,16 @@ import { openStatusModal } from '../../store/slices/uiSlice';
 const EditProductModal = () => {
     const dispatch = useDispatch();
     const { categories, editingProduct } = useSelector((state) => state.seller);
-    console.log("Editing Product, ", editingProduct)
-    // Initialize type based on editing product, fail-safe to 'part'
+
     const type = editingProduct?.type || 'part';
     const isPartOrAccessory = type === 'part' || type === 'accessory';
 
-    // Category UI State
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState('');
     const categoryWrapperRef = useRef(null);
 
-    // Image Upload Ref
     const fileInputRef = useRef(null);
 
-    // Form State
     const [localImages, setLocalImages] = useState([]);
     const [existingImages, setExistingImages] = useState([]);
 
@@ -34,10 +30,8 @@ const EditProductModal = () => {
         model: '',
         price: '',
         description: '',
-        // Part / Accessory
         stock: '',
         category: '',
-        // Bike
         year: '',
         kmdriven: '',
         condition: 'Good',
@@ -45,7 +39,6 @@ const EditProductModal = () => {
         address: ''
     });
 
-    // Initialize Data
     useEffect(() => {
         if (categories.length === 0) {
             dispatch(fetchCategories());

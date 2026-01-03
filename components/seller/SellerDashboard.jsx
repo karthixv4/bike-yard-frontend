@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
+import WelcomeFeatureModal from '../common/WelcomeFeatureModal';
 import { startTour, openAddModal, fetchSellerProducts, fetchSellerOrders, openEditModal, setSelectedOrder, deleteSellerProduct } from '../../store/slices/sellerSlice';
 import Navbar from '../common/Navbar';
 import Button from '../common/Button';
@@ -141,6 +142,10 @@ const SellerDashboard = () => {
             onClose={() => setInspectionModalProduct(null)}
           />
         )}
+      </AnimatePresence>
+      {/* Welcome Tour Modal */}
+      <AnimatePresence>
+        <WelcomeFeatureModal />
       </AnimatePresence>
       {/* Delete Confirmation Modal */}
       <AnimatePresence>

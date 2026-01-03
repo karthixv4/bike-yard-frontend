@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Calendar, MapPin, User, ShieldCheck, FileText, Wrench, AlertCircle, CheckCircle2, Clock, Trash2 } from 'lucide-react';
+import { X, Calendar, MapPin, User, ShieldCheck, FileText, Wrench, AlertCircle, CheckCircle2, Clock, Trash2, Bike, PenTool } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearSelectedInspection, cancelInspection } from '../../store/slices/buyerSlice';
 import Button from '../common/Button';
@@ -11,7 +11,21 @@ const BuyerInspectionModal = () => {
 
     if (!selectedInspection) return null;
 
-    const { id, product, mechanic, status, reportData, offerAmount, scheduledDate, buyer } = selectedInspection;
+    const {
+        id,
+        product,
+        mechanic,
+        status,
+        reportData,
+        offerAmount,
+        scheduledDate,
+        type,
+        serviceType,
+        userBike,
+        message
+    } = selectedInspection;
+
+    const isService = type === 'SERVICE';
 
     const getStatusColor = (s) => {
         switch (s) {
@@ -28,6 +42,14 @@ const BuyerInspectionModal = () => {
     const handleCancel = () => {
         dispatch(cancelInspection(id));
     };
+
+    // --- Dynamic Header Content ---
+    const headerTitle = isService ? serviceType : (product?.title || 'Inspection Details');
+    const headerSubtitle = isService
+        ? `${userBike?.brand} ${userBike?.model} (${userBike?.year})`
+        : 'Expert Verification';
+
+    const HeaderIcon = isService ? Wrench : ShieldCheck;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -52,14 +74,21 @@ const BuyerInspectionModal = () => {
                     <X size={20} className="text-nothing-muted hover:text-white" />
                 </button>
 
-                {/* Header with Product Info */}
+                {/* Header */}
                 <div className="p-8 border-b border-nothing-gray bg-nothing-black/50">
                     <div className="flex gap-4">
-                        <div className="w-20 h-20 bg-neutral-900 rounded-2xl border border-nothing-gray overflow-hidden shrink-0 flex items-center justify-center">
+                        <div className="w-20 h-20 bg-neutral-900 rounded-2xl border border-nothing-gray overflow-hidden shrink-0 flex items-center justify-center relative">
                             {product?.images?.[0]?.url ? (
                                 <img src={product.images[0].url} alt={product.title} className="w-full h-full object-cover" />
                             ) : (
-                                <ShieldCheck size={32} className="text-nothing-muted" />
+                                <div className="flex items-center justify-center text-nothing-muted">
+                                    <HeaderIcon size={32} />
+                                </div>
+                            )}
+                            {isService && (
+                                <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center">
+                                    <Wrench size={32} className="text-blue-500" />
+                                </div>
                             )}
                         </div>
                         <div>
@@ -67,8 +96,9 @@ const BuyerInspectionModal = () => {
                                 <span className={`w-1.5 h-1.5 rounded-full ${status === 'COMPLETED' ? 'bg-green-500' : status === 'CANCELLED' ? 'bg-neutral-500' : 'bg-current animate-pulse'}`} />
                                 {statusLabel}
                             </div>
-                            <h2 className="text-xl font-medium text-nothing-white leading-tight">{product?.title || 'Inspection Details'}</h2>
-                            <div className="flex items-center gap-4 text-sm text-nothing-muted mt-2 font-mono">
+                            <h2 className="text-xl font-medium text-nothing-white leading-tight">{headerTitle}</h2>
+                            <p className="text-xs font-mono text-nothing-muted mt-1 uppercase">{headerSubtitle}</p>
+                            <div className="flex items-center gap-4 text-sm text-nothing-muted mt-3 font-mono">
                                 <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(scheduledDate).toLocaleDateString()}</span>
                                 <span>Offer: ₹{offerAmount}</span>
                             </div>
@@ -78,10 +108,32 @@ const BuyerInspectionModal = () => {
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8">
 
-                    {/* Report Section - Only if Completed */}
-                    {status === 'COMPLETED' && reportData && (
+                    {/* --- SERVICE SPECIFIC DETAILS --- */}
+                    {isService && (
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium text-nothing-white flex items-center gap-2 border-b border-nothing-gray pb-2">
+                                <Bike className="text-blue-500" size={20} /> Service Details
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-nothing-black/20 p-4 rounded-xl border border-nothing-gray">
+                                    <p className="text-xs font-mono text-nothing-muted uppercase mb-1">Bike</p>
+                                    <p className="text-nothing-white font-medium">{userBike?.brand} {userBike?.model}</p>
+                                    <p className="text-xs text-nothing-muted">{userBike?.year} • {userBike?.registration || 'N/A'}</p>
+                                </div>
+                                {message && (
+                                    <div className="bg-nothing-black/20 p-4 rounded-xl border border-nothing-gray">
+                                        <p className="text-xs font-mono text-nothing-muted uppercase mb-1">Instructions</p>
+                                        <p className="text-sm text-nothing-white italic">"{message}"</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- INSPECTION REPORT (Only for Inspection Type) --- */}
+                    {!isService && status === 'COMPLETED' && reportData && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <h3 className="text-lg font-medium text-nothing-white flex items-center gap-2">
+                            <h3 className="text-lg font-medium text-nothing-white flex items-center gap-2 border-b border-nothing-gray pb-2">
                                 <FileText className="text-nothing-red" size={20} /> Inspection Report
                             </h3>
 
@@ -118,7 +170,7 @@ const BuyerInspectionModal = () => {
                         </div>
                     )}
 
-                    {/* Mechanic & Seller Info */}
+                    {/* --- MECHANIC INFO (Common) --- */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                         {/* Mechanic Info */}
@@ -150,23 +202,26 @@ const BuyerInspectionModal = () => {
                             )}
                         </div>
 
-                        {/* Seller Info */}
-                        <div className="bg-nothing-black/20 border border-nothing-gray rounded-2xl p-5 space-y-3">
-                            <h4 className="text-sm font-mono uppercase text-nothing-muted flex items-center gap-2">
-                                <User size={14} /> Seller
-                            </h4>
-                            <div>
-                                <p className="text-nothing-white font-medium">{product?.seller?.businessName || "Private Seller"}</p>
-                                {product?.seller?.isVerified && (
-                                    <div className="mt-2 flex items-center gap-1 text-[10px] text-green-500 font-mono uppercase">
-                                        <CheckCircle2 size={12} /> Verified Business
-                                    </div>
-                                )}
+                        {/* Seller Info (Only for Inspection) */}
+                        {!isService && (
+                            <div className="bg-nothing-black/20 border border-nothing-gray rounded-2xl p-5 space-y-3">
+                                <h4 className="text-sm font-mono uppercase text-nothing-muted flex items-center gap-2">
+                                    <User size={14} /> Seller
+                                </h4>
+                                <div>
+                                    <p className="text-nothing-white font-medium">{product?.seller?.businessName || "Private Seller"}</p>
+                                    {product?.seller?.isVerified && (
+                                        <div className="mt-2 flex items-center gap-1 text-[10px] text-green-500 font-mono uppercase">
+                                            <CheckCircle2 size={12} /> Verified Business
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                     </div>
 
+                    {/* --- PENDING / CANCELLED STATES --- */}
                     {status === 'PENDING' && (
                         <div className="space-y-4">
                             <div className="flex items-start gap-3 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl">
@@ -188,7 +243,7 @@ const BuyerInspectionModal = () => {
                         <div className="flex items-start gap-3 p-4 bg-nothing-white/5 border border-nothing-gray rounded-xl">
                             <AlertCircle size={20} className="text-nothing-muted shrink-0 mt-0.5" />
                             <p className="text-xs text-nothing-muted leading-relaxed">
-                                This inspection request has been cancelled. You can place a new request from the bike details page.
+                                This request has been cancelled.
                             </p>
                         </div>
                     )}

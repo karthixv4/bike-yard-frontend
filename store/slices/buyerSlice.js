@@ -8,6 +8,7 @@ const initialState = {
   orders: [],
   selectedInspection: null,
   selectedOrder: null,
+  garage: [],
   mechanics: [],
   dashboard: {
     bikes: { data: [], pagination: { total: 0, page: 1, limit: 10 } },
@@ -16,6 +17,43 @@ const initialState = {
   },
   isCartLoading: false
 };
+
+
+export const fetchGarage = createAsyncThunk(
+  'buyer/fetchGarage',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await buyerService.fetchGarage();
+    } catch (error) {
+      return rejectWithValue('Failed to load garage');
+    }
+  }
+);
+
+export const addBikeToGarage = createAsyncThunk(
+  'buyer/addBikeToGarage',
+  async (bikeData, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('adding-bike'));
+    try {
+      const response = await buyerService.addBikeToGarage(bikeData);
+      dispatch(openStatusModal({
+        type: 'success',
+        title: 'Bike Added',
+        message: `${bikeData.brand} ${bikeData.model} is parked in your garage.`
+      }));
+      return response;
+    } catch (error) {
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Could not add bike.'
+      }));
+      return rejectWithValue(error.message);
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
 
 export const fetchCart = createAsyncThunk(
   'buyer/fetchCart',
@@ -70,9 +108,9 @@ export const fetchInspectionDetail = createAsyncThunk(
       dispatch(openStatusModal({
         type: 'error',
         title: 'Error',
-        message: 'Failed to retrieve inspection details.',
+        message: 'Failed to retrieve details.',
       }));
-      return rejectWithValue('Failed to fetch inspection details');
+      return rejectWithValue('Failed to fetch details');
     } finally {
       dispatch(setLoader(null));
     }
@@ -155,6 +193,32 @@ export const requestInspection = createAsyncThunk(
   }
 );
 
+
+export const requestService = createAsyncThunk(
+  'buyer/requestService',
+  async (data, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('inspection'));
+    try {
+      const response = await buyerService.requestService(data);
+      dispatch(openStatusModal({
+        type: 'success',
+        title: 'Service Requested',
+        message: `Your ${data.serviceType} request has been broadcasted to mechanics.`
+      }));
+      return response;
+    } catch (error) {
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Request Failed',
+        message: error.message || 'Could not submit request.'
+      }));
+      return rejectWithValue(error.message);
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
+
 export const cancelInspection = createAsyncThunk(
   'buyer/cancelInspection',
   async (id, { dispatch, rejectWithValue }) => {
@@ -165,7 +229,7 @@ export const cancelInspection = createAsyncThunk(
       dispatch(openStatusModal({
         type: 'success',
         title: 'Request Cancelled',
-        message: 'The inspection request has been cancelled.',
+        message: 'The request has been cancelled.',
       }));
 
       return id;
@@ -266,7 +330,12 @@ const buyerSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
-    // --- Cart ---
+    builder.addCase(fetchGarage.fulfilled, (state, action) => {
+      state.garage = action.payload;
+    });
+    builder.addCase(addBikeToGarage.fulfilled, (state, action) => {
+      state.garage.push(action.payload);
+    });
     builder.addCase(fetchCart.pending, (state) => {
       state.isCartLoading = true;
     });
@@ -309,20 +378,38 @@ const buyerSlice = createSlice({
         date: new Date().toISOString().split('T')[0]
       });
     });
-    // Fetch List
+    builder.addCase(requestService.fulfilled, (state, action) => {
+      const data = action.payload;
+      // Since we don't have the full object structure immediately from the simplified thunk response in some cases,
+      // we can either refresh the list or optimistically add. 
+      // Let's add based on response.
+      state.inspections.unshift({
+        id: data.id,
+        bikeId: data.userBikeId,
+        bikeName: 'My Bike', // Will be updated on refresh
+        offerAmount: data.offerAmount,
+        status: 'PENDING',
+        type: 'SERVICE',
+        serviceType: data.serviceType,
+        date: data.createdAt ? data.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]
+      });
+    });
     builder.addCase(fetchBuyerInspections.fulfilled, (state, action) => {
       state.inspections = action.payload.map((item) => ({
         id: item.id,
-        bikeId: item.productId,
-        bikeName: item.product?.title || 'Unknown Bike',
+        bikeId: item.productId || item.userBikeId,
+        bikeName: item.product?.title || (item.userBike ? `${item.userBike.brand} ${item.userBike.model}` : 'Unknown Bike'),
         offerAmount: item.offerAmount,
         status: item.status,
+        type: item.type || 'INSPECTION',
+        serviceType: item.serviceType,
         date: item.createdAt ? item.createdAt.split('T')[0] : 'N/A',
         mechanicName: item.mechanic?.user?.name,
         message: item.message,
         reportData: item.reportData,
         product: item.product,
-        mechanic: item.mechanic
+        mechanic: item.mechanic,
+        userBike: item.userBike
       }));
     });
 

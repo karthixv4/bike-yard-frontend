@@ -50,12 +50,31 @@ export const mechanicService = {
     },
 
     updateCartItemQuantity: async (cartItemId, quantity) => {
-        const response = await apiClient.patch(`/orders/cart/${cartItemId}`, { quantity });
+        const response = await apiClient.put(`/orders/cart/${cartItemId}`, { quantity });
         return response.data;
     },
 
     checkout: async () => {
         const response = await apiClient.post('/orders/checkout', {});
+        return response.data;
+    },
+
+    fetchMyOrders: async () => {
+        const response = await apiClient.get('/orders/my-orders');
+        return response.data;
+    },
+
+    cancelOrder: async (orderId) => {
+        const response = await apiClient.put(`/orders/${orderId}/cancel`);
+        return response.data;
+    },
+    getProfile: async () => {
+        const response = await apiClient.get('/user/profile');
+        return response.data;
+    },
+
+    updateProfile: async (data) => {
+        const response = await apiClient.put('/mechanic/profile', data);
         return response.data;
     }
 };

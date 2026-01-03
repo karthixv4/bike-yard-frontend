@@ -6,7 +6,6 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 export const sellerService = {
 
   fetchListings: async () => {
-    console.log("API CALL: GET /api/seller/my-listings");
     const response = await apiClient.get('/seller/my-listings');
     return response.data
   },
@@ -87,8 +86,6 @@ export const sellerService = {
   },
 
   addProduct: async (productData) => {
-    console.log("API CALL: Adding Product payload...", JSON.stringify(productData, null, 2));
-
     const response = await apiClient.post('/products', productData);
     return response.data;
 

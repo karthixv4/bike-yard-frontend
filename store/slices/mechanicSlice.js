@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { mechanicService } from '../../services/mechanicService';
-import { openStatusModal, setLoader } from './uiSlice';
+import { openStatusModal, setLoader, addNotification } from './uiSlice';
 
 
 
@@ -8,12 +8,15 @@ const initialState = {
   stats: {
     earnings: 0,
     jobsCompleted: 0,
-    rating: 4.8, // Default rating as backend calculation logic might be complex
+    rating: 4.8,
   },
   requests: [],
   activeJobs: [],
   history: [],
   cart: [],
+  profile: null,
+  orders: [],
+  selectedOrder: null,
   marketplace: [],
   marketplaceMeta: { total: 0, page: 1, limit: 10 },
   isInspectionModalOpen: false,
@@ -45,6 +48,89 @@ export const fetchActiveInspections = createAsyncThunk(
       return await mechanicService.fetchMyInspections();
     } catch (error) {
       return rejectWithValue('Failed to fetch active inspections');
+    }
+  }
+);
+
+export const fetchMechanicOrders = createAsyncThunk(
+  'mechanic/fetchOrders',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await mechanicService.fetchMyOrders();
+    } catch (error) {
+      return rejectWithValue('Failed to fetch orders');
+    }
+  }
+);
+
+export const cancelMechanicOrder = createAsyncThunk(
+  'mechanic/cancelOrder',
+  async (orderId, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('default'));
+    try {
+      await mechanicService.cancelOrder(orderId);
+      dispatch(openStatusModal({
+        type: 'success',
+        title: 'Order Cancelled',
+        message: `Order #${orderId.slice(-6)} has been cancelled.`,
+      }));
+      return orderId;
+    } catch (error) {
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Cancellation Failed',
+        message: error.message || 'Could not cancel the order.',
+      }));
+      return rejectWithValue(error.message);
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
+
+export const fetchMechanicProfile = createAsyncThunk(
+  'mechanic/fetchProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await mechanicService.getProfile();
+      if (response.mechanicProfile) {
+        return {
+          ...response.mechanicProfile,
+          user: {
+            name: response.name,
+            phone: response.phone,
+            email: response.email
+          }
+        }
+      }
+      return response;
+    } catch (error) {
+      return rejectWithValue('Failed to load profile');
+    }
+  }
+);
+
+export const updateMechanicProfile = createAsyncThunk(
+  'mechanic/updateProfile',
+  async (data, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('updating-profile'));
+    try {
+      const response = await mechanicService.updateProfile(data);
+      dispatch(addNotification({
+        title: 'Profile Updated',
+        message: 'Your professional details have been saved.',
+        type: 'success'
+      }));
+      return response;
+    } catch (error) {
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Update Failed',
+        message: error.message || 'Could not update profile.'
+      }));
+      return rejectWithValue(error.message);
+    } finally {
+      dispatch(setLoader(null));
     }
   }
 );
@@ -220,6 +306,7 @@ export const checkoutMechanicCart = createAsyncThunk(
 
       dispatch(fetchMechanicCart());
       dispatch(fetchMechanicMarketplace(1));
+      dispatch(fetchMechanicOrders());
 
       return response;
     } catch (error) {
@@ -234,6 +321,35 @@ export const checkoutMechanicCart = createAsyncThunk(
     }
   }
 );
+
+
+// New Thunk for Service Completion (No Report)
+export const completeServiceJob = createAsyncThunk(
+  'mechanic/completeServiceJob',
+  async (id, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('default'));
+    try {
+      await mechanicService.updateInspectionStatus(id, 'COMPLETED');
+
+      dispatch(setLoader(null));
+      dispatch(openStatusModal({
+        type: 'success',
+        title: 'Service Completed',
+        message: 'The service job has been marked as done.'
+      }));
+
+      return id;
+    } catch (error) {
+      dispatch(setLoader(null));
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Action Failed',
+        message: error.message || 'Could not complete job.'
+      }));
+      return rejectWithValue(error.message);
+    }
+  }
+);
 const mechanicSlice = createSlice({
   name: 'mechanic',
   initialState,
@@ -245,6 +361,9 @@ const mechanicSlice = createSlice({
     closeInspectionModal: (state) => {
       state.isInspectionModalOpen = false;
       state.selectedRequestId = null;
+    },
+    setSelectedMechanicOrder: (state, action) => {
+      state.selectedOrder = action.payload;
     },
     openReportModal: (state, action) => {
       state.selectedRequestId = action.payload;
@@ -290,14 +409,16 @@ const mechanicSlice = createSlice({
         .filter((item) => item.status === 'PENDING')
         .map((item) => ({
           id: String(item.id),
-          bikeModel: item.product.title,
-          bikeImage: item.product.images[0]?.url || '',
-          customerName: item.buyer.name,
-          location: item.product.address || 'Location provided upon acceptance', // Actual data
+          bikeModel: item.product?.title || (item.userBike ? `${item.userBike.brand} ${item.userBike.model}` : 'Unknown Asset'),
+          bikeImage: item.product?.images?.[0]?.url || '',
+          customerName: item.buyer?.name || 'Customer',
+          location: item.product?.address || 'Location provided upon acceptance',
           offerAmount: item.offerAmount,
           date: item.scheduledDate ? item.scheduledDate.split('T')[0] : item.createdAt.split('T')[0],
           status: 'pending',
-          details: item.message || 'Standard Inspection Request'
+          details: item.message || (item.serviceType ? `Service Request: ${item.serviceType}` : 'Standard Inspection Request'),
+          type: item.type || 'INSPECTION',
+          serviceType: item.serviceType
         }));
     });
     builder.addCase(fetchActiveInspections.fulfilled, (state, action) => {
@@ -311,21 +432,22 @@ const mechanicSlice = createSlice({
       allInspections.forEach((item) => {
         const mapped = {
           id: String(item.id),
-          bikeModel: item.product?.title || 'Unknown Model',
+          bikeModel: item.product?.title || (item.userBike ? `${item.userBike.brand} ${item.userBike.model}` : 'Unknown Asset'),
           bikeImage: item.product?.images?.[0]?.url || '',
           customerName: item.buyer?.name || 'Unknown Buyer',
           location: item.product?.address || 'Location Unknown',
           offerAmount: item.offerAmount,
           date: item.createdAt ? item.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
           status: item.status.toLowerCase(),
-          details: item.message || 'Inspection Request',
+          details: item.message || (item.serviceType ? `Service: ${item.serviceType}` : 'Inspection Request'),
           dueDate: item.scheduledDate ? item.scheduledDate.split('T')[0] : undefined,
+          rejectionReason: item.rejectionReason,
           report: item.reportData ? {
             scores: item.reportData.scores,
             overallComment: item.reportData.overallComment
           } : undefined,
-          rejectionReason: item.rejectionReason,
-
+          type: item.type || 'INSPECTION',
+          serviceType: item.serviceType
         };
 
         const statusLower = mapped.status.toLowerCase();
@@ -336,6 +458,7 @@ const mechanicSlice = createSlice({
             totalEarnings += mapped.offerAmount;
           }
         } else {
+          // Accepted or Pending (though my-inspections usually has accepted/completed)
           active.push(mapped);
         }
       });
@@ -350,6 +473,18 @@ const mechanicSlice = createSlice({
     // Marketplace
     builder.addCase(fetchMechanicMarketplace.pending, (state) => {
       state.marketLoading = true;
+    });
+    builder.addCase(fetchMechanicOrders.fulfilled, (state, action) => {
+      state.orders = action.payload;
+    });
+    builder.addCase(cancelMechanicOrder.fulfilled, (state, action) => {
+      const index = state.orders.findIndex(o => o.id === action.payload);
+      if (index !== -1) {
+        state.orders[index].status = 'CANCELLED';
+      }
+      if (state.selectedOrder && state.selectedOrder.id === action.payload) {
+        state.selectedOrder.status = 'CANCELLED';
+      }
     });
     builder.addCase(fetchMechanicMarketplace.fulfilled, (state, action) => {
       state.marketLoading = false;
@@ -400,6 +535,12 @@ const mechanicSlice = createSlice({
     builder.addCase(checkoutMechanicCart.fulfilled, (state) => {
       state.cart = [];
     });
+    builder.addCase(fetchMechanicProfile.fulfilled, (state, action) => {
+      state.profile = action.payload;
+    });
+    builder.addCase(updateMechanicProfile.fulfilled, (state, action) => {
+      state.profile = action.payload;
+    });
     // Submit Report Logic
     builder.addCase(submitInspectionReport.fulfilled, (state, action) => {
       const { id, report } = action.payload;
@@ -414,6 +555,20 @@ const mechanicSlice = createSlice({
         state.stats.earnings += job.offerAmount;
       }
     });
+    builder.addCase(completeServiceJob.fulfilled, (state, action) => {
+      const id = action.payload;
+      const jobIndex = state.activeJobs.findIndex(j => j.id === id);
+      if (jobIndex !== -1) {
+        const job = state.activeJobs[jobIndex];
+        job.status = 'completed';
+
+        state.history.unshift(job);
+        state.activeJobs.splice(jobIndex, 1);
+
+        state.stats.jobsCompleted += 1;
+        state.stats.earnings += job.offerAmount;
+      }
+    });
   }
 });
 
@@ -424,6 +579,7 @@ export const {
   closeReportModal,
   openHistoryModal,
   closeHistoryModal,
+  setSelectedMechanicOrder,
   rejectRequest,
   orderPart
 } = mechanicSlice.actions;

@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+const TOUR_STORAGE_KEY = 'bike_yard_tour_completed_v2';
 
-// Get initial theme from localStorage or default to dark
 const getInitialTheme = () => {
   try {
     const saved = localStorage.getItem('theme');
@@ -10,7 +10,14 @@ const getInitialTheme = () => {
     return 'dark';
   }
 };
-
+const getInitialTourState = () => {
+  try {
+    const val = localStorage.getItem(TOUR_STORAGE_KEY);
+    return val === 'true';
+  } catch {
+    return false;
+  }
+};
 const initialState = {
   theme: getInitialTheme(),
   activeLoader: null,
@@ -24,12 +31,14 @@ const initialState = {
     {
       id: 'welcome',
       title: 'Welcome!',
-      message: 'Your seller dashboard is ready.',
+      message: 'Your dashboard is ready.',
       type: 'info',
       read: false,
       timestamp: new Date().toISOString()
     }
-  ]
+  ],
+  welcomeTourSeen: getInitialTourState(),
+  isWelcomeModalOpen: false,
 };
 
 const uiSlice = createSlice({
@@ -70,9 +79,28 @@ const uiSlice = createSlice({
     },
     clearNotifications: (state) => {
       state.notifications = [];
+    },
+    markWelcomeTourSeen: (state) => {
+      state.welcomeTourSeen = true;
+      localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+    },
+    openWelcomeModal: (state) => {
+      state.isWelcomeModalOpen = true;
+    },
+    closeWelcomeModal: (state) => {
+      state.isWelcomeModalOpen = false;
     }
+  },
+  extraReducers: (builder) => {
+    builder.addCase('auth/logout', (state) => {
+      state.welcomeTourSeen = false;
+      state.isWelcomeModalOpen = false;
+      localStorage.removeItem(TOUR_STORAGE_KEY);
+    });
   }
 });
 
-export const { toggleTheme, setLoader, openStatusModal, closeStatusModal, addNotification, clearNotifications, markAllNotificationsRead } = uiSlice.actions;
+export const { toggleTheme, setLoader, openStatusModal, closeStatusModal, markWelcomeTourSeen,
+  openWelcomeModal,
+  closeWelcomeModal, addNotification, clearNotifications, markAllNotificationsRead } = uiSlice.actions;
 export default uiSlice.reducer;
