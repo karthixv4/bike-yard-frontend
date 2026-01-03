@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Bike, Wrench, ShieldCheck, ShoppingBag, ArrowRight, Activity, Search, Zap, Layers, BarChart3 } from 'lucide-react';
 import Button from '../common/Button';
 import ThemeToggle from '../common/ThemeToggle';
+import DemoCredentials from '../common/DemoCredentials';
 
 const MarqueeItem = ({ text }) => (
     <div className="flex items-center gap-4 mx-4">
@@ -39,7 +40,7 @@ const FeatureCard = ({ title, desc, icon: Icon, className, delay = 0 }) => {
 const LandingPage = ({ onGetStarted, onLogin }) => {
     return (
         <div className="min-h-screen bg-nothing-black text-nothing-white font-sans selection:bg-nothing-red selection:text-white overflow-x-hidden transition-colors duration-300">
-
+            <DemoCredentials />
             {/* Navbar */}
             <nav className="fixed top-0 w-full z-50 bg-nothing-black/80 backdrop-blur-md border-b border-nothing-gray transition-colors duration-300">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -251,7 +252,7 @@ const LandingPage = ({ onGetStarted, onLogin }) => {
                         <Bike size={20} className="text-nothing-red" />
                         <span className="font-medium tracking-tight text-nothing-white">Bike Yard</span>
                     </div>
-                    <p className="text-xs text-nothing-muted font-mono">© 2024 Bike Yard. Engineered for Riders.</p>
+                    <p className="text-xs text-nothing-muted font-mono">© 2026 Bike Yard. Engineered for Riders.</p>
                 </div>
             </footer>
         </div>

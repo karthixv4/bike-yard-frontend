@@ -15,9 +15,34 @@ const initialState = {
     parts: { data: [], pagination: { total: 0, page: 1, limit: 10 } },
     loading: false
   },
-  isCartLoading: false
+  isCartLoading: false,
+  bikeHistory: [],
+  isHistoryLoading: false
 };
-
+export const updateGarageBike = createAsyncThunk(
+  'buyer/updateGarageBike',
+  async ({ id, data }, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('adding-bike')); // Use generic loader
+    try {
+      const response = await buyerService.updateBike(id, data);
+      dispatch(openStatusModal({
+        type: 'success',
+        title: 'Bike Updated',
+        message: 'Garage details have been updated successfully.'
+      }));
+      return response;
+    } catch (error) {
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Update Failed',
+        message: error.message || 'Could not update bike details.'
+      }));
+      return rejectWithValue(error.message);
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
 
 export const fetchGarage = createAsyncThunk(
   'buyer/fetchGarage',
@@ -30,6 +55,16 @@ export const fetchGarage = createAsyncThunk(
   }
 );
 
+export const fetchBikeHistory = createAsyncThunk(
+  'buyer/fetchBikeHistory',
+  async (bikeId, { rejectWithValue }) => {
+    try {
+      return await buyerService.fetchBikeHistory(bikeId);
+    } catch (error) {
+      return rejectWithValue('Failed to load history');
+    }
+  }
+);
 export const addBikeToGarage = createAsyncThunk(
   'buyer/addBikeToGarage',
   async (bikeData, { dispatch, rejectWithValue }) => {
@@ -346,7 +381,22 @@ const buyerSlice = createSlice({
     builder.addCase(fetchCart.rejected, (state) => {
       state.isCartLoading = false;
     });
-
+    builder.addCase(fetchBikeHistory.pending, (state) => {
+      state.isHistoryLoading = true;
+    });
+    builder.addCase(fetchBikeHistory.fulfilled, (state, action) => {
+      state.isHistoryLoading = false;
+      state.bikeHistory = action.payload;
+    });
+    builder.addCase(fetchBikeHistory.rejected, (state) => {
+      state.isHistoryLoading = false;
+    });
+    builder.addCase(updateGarageBike.fulfilled, (state, action) => {
+      const index = state.garage.findIndex(b => b.id === action.payload.id);
+      if (index !== -1) {
+        state.garage[index] = action.payload;
+      }
+    });
     builder.addCase(checkoutCart.fulfilled, (state) => {
       state.cart = [];
     });
@@ -380,13 +430,10 @@ const buyerSlice = createSlice({
     });
     builder.addCase(requestService.fulfilled, (state, action) => {
       const data = action.payload;
-      // Since we don't have the full object structure immediately from the simplified thunk response in some cases,
-      // we can either refresh the list or optimistically add. 
-      // Let's add based on response.
       state.inspections.unshift({
         id: data.id,
         bikeId: data.userBikeId,
-        bikeName: 'My Bike', // Will be updated on refresh
+        bikeName: 'My Bike',
         offerAmount: data.offerAmount,
         status: 'PENDING',
         type: 'SERVICE',

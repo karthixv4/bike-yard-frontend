@@ -17,7 +17,6 @@ export const sellerService = {
       return response.data;
     } catch (error) {
       console.warn("Using mock sales due to API error", error);
-      // Fallback Mock
       return [
         {
           id: "item-uuid-1",
@@ -31,7 +30,7 @@ export const sellerService = {
           },
           order: {
             id: "ORD-7782-XJ",
-            createdAt: "2024-03-10",
+            createdAt: "2026-03-10",
             status: "PAID",
             buyer: { name: "Rahul Sharma", email: "rahul.s@example.com" }
           }

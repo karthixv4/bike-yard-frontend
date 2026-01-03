@@ -65,12 +65,15 @@ export const buyerService = {
     return response.data;
   },
   requestService: async (serviceData) => {
-    // POST /api/inspections/request with type="SERVICE"
     const payload = { ...serviceData, type: 'SERVICE' };
     const response = await apiClient.post('/inspections/request', payload);
     return response.data;
   },
-  // --- GARAGE OPERATIONS ---
+
+  updateBike: async (id, data) => {
+    const response = await apiClient.put(`/user/garage/${id}`, data);
+    return response.data;
+  },
   addBikeToGarage: async (data) => {
     const response = await apiClient.post('/user/garage', data);
     return response.data;
@@ -78,6 +81,11 @@ export const buyerService = {
 
   fetchGarage: async () => {
     const response = await apiClient.get('/user/garage');
+    return response.data;
+  },
+
+  fetchBikeHistory: async (bikeId) => {
+    const response = await apiClient.get(`/user/garage/${bikeId}/history`);
     return response.data;
   },
 };

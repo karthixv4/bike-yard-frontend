@@ -58,7 +58,7 @@ export const loginUser = createAsyncThunk(
       dispatch(openStatusModal({
         type: 'error',
         title: 'Login Failed',
-        message: err.message || 'Check your credentials and try again.'
+        message: 'Check your credentials and try again.'
       }));
       return rejectWithValue(err.message);
     } finally {
@@ -73,19 +73,6 @@ export const registerUser = createAsyncThunk(
     dispatch(setLoader('auth'));
     try {
       const response = await authService.register(userData);
-      //   let response = {
-      //     "message": "User registered successfully",
-      //     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijc0ZmYxZGE0LTIwMDQtNDljZi1hN2QwLTY3MzNmYjI3YTU4MCIsImVtYWlsIjoidmlja3lAZXhhbXBsZS5jb20iLCJyb2xlcyI6eyJpc01lY2hhbmljIjpmYWxzZSwiaXNTZWxsZXIiOmZhbHNlLCJpc0FkbWluIjpmYWxzZX0sImlhdCI6MTc2NjgzMDQ5NiwiZXhwIjoxNzY3NDM1Mjk2fQ.LsJwSDn9AspjiBi-JMDRh8VSp7qSAG7imFHti9cfIyc",
-      //     "user": {
-      //         "id": "74ff1da4-2004-49cf-a7d0-6733fb27a580",
-      //         "name": "John Doe",
-      //         "roles": {
-      //             "isMechanic": false,
-      //             "isSeller": false,
-      //             "isAdmin": false
-      //         }
-      //     }
-      // }
       return response;
     } catch (err) {
       dispatch(openStatusModal({

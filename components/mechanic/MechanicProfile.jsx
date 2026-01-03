@@ -202,7 +202,7 @@ const MechanicProfile = () => {
                             </div>
                             <div className="flex justify-between items-center text-sm border-t border-nothing-gray pt-3 mt-3">
                                 <span className="text-nothing-muted">Member Since</span>
-                                <span className="text-nothing-white font-mono">2024</span>
+                                <span className="text-nothing-white font-mono">2026</span>
                             </div>
                         </div>
                     </div>

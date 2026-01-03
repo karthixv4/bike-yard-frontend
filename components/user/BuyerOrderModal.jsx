@@ -136,7 +136,7 @@ const BuyerOrderModal = ({ onCancelClick }) => {
                                         </div>
                                         <p className="text-xs text-nothing-muted font-mono mt-1 uppercase">
                                             {item.product.type === 'BIKE'
-                                                ? `${item.product.year ?? '2024'} • ${item.product.kmDriven ?? '15,000'} KM`
+                                                ? `${item.product.year ?? '2026'} • ${item.product.kmDriven ?? '15,000'} KM`
                                                 : `Qty: ${item.quantity ?? '1'}`}
                                         </p>
                                     </div>

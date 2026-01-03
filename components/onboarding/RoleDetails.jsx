@@ -28,8 +28,7 @@ const MOCK_BIKES = [
 
 const RoleDetails = ({ role, onBack, onContinue }) => {
   const dispatch = useDispatch();
-  
-  // --- GENERAL STATE ---
+
   const [formData, setFormData] = useState({
     businessName: '',
     gstNumber: '',
@@ -48,13 +47,13 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedBike, setSelectedBike] = useState('');
-  
+
   // User Bike Details
   const [bikeYear, setBikeYear] = useState('2022');
-  const [bikeKm, setBikeKm] = useState('5000-10000');
-  
+  const [registration, setRegistration] = useState('');
+
   // Animation State
-  const [loadingStage, setLoadingStage] = useState(0); // 0: Scanning, 1: Specs, 2: 3D, 3: Done
+  const [loadingStage, setLoadingStage] = useState(0);
 
   // --- HANDLERS ---
 
@@ -71,7 +70,7 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
   // --- SEARCH LOGIC ---
   useEffect(() => {
     if (searchTerm.length > 1) {
-      const results = MOCK_BIKES.filter(bike => 
+      const results = MOCK_BIKES.filter(bike =>
         bike.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setSearchResults(results);
@@ -92,25 +91,23 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
   useEffect(() => {
     if (userStep === 'loading') {
       const timers = [
-        setTimeout(() => setLoadingStage(1), 1500), // Scanning -> Specs
-        setTimeout(() => setLoadingStage(2), 3000), // Specs -> Building 3D
-        setTimeout(() => setLoadingStage(3), 4500), // Building -> Parking
+        setTimeout(() => setLoadingStage(1), 1500),
+        setTimeout(() => setLoadingStage(2), 3000),
+        setTimeout(() => setLoadingStage(3), 4500),
         setTimeout(() => {
-            // Finalize
-            dispatch(setDetails({
-                hasBike: true,
-                bikeModel: selectedBike,
-                bikeYear,
-                bikeKm
-            }));
-            onContinue();
+          dispatch(setDetails({
+            hasBike: true,
+            bikeModel: selectedBike,
+            bikeYear,
+            registration
+          }));
+          onContinue();
         }, 5500)
       ];
       return () => timers.forEach(clearTimeout);
     }
-  }, [userStep, dispatch, selectedBike, bikeYear, bikeKm, onContinue]);
+  }, [userStep, dispatch, selectedBike, bikeYear, registration, onContinue]);
 
-  // --- VALIDATION ---
   const validateGeneralForm = () => {
     const newErrors = {};
     let isValid = true;
@@ -131,7 +128,7 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
     if (validateGeneralForm()) {
       // Filter data based on role to avoid sending empty irrelevant fields
       let relevantData = {};
-      
+
       if (role === 'seller') {
         relevantData = {
           businessName: formData.businessName,
@@ -150,7 +147,7 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
       dispatch(setDetails(relevantData));
       onContinue();
     }
-  };  
+  };
 
   const handleNoBikeSubmit = () => {
     dispatch(setDetails({ hasBike: false }));
@@ -164,83 +161,83 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
     <div className="flex flex-col items-center justify-center space-y-8 w-full">
       <div className="relative w-64 h-64 border border-neutral-800 rounded-3xl bg-neutral-900 overflow-hidden flex items-center justify-center">
         {/* Grid Background */}
-        <div 
-            className="absolute inset-0 opacity-20" 
-            style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '20px 20px' }}
         />
 
         {/* Central Icon Animations */}
         <AnimatePresence mode="wait">
-            {loadingStage === 0 && (
-                <motion.div 
-                    key="scan"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="flex flex-col items-center text-nothing-red"
-                >
-                    <Bike size={80} strokeWidth={1} className="opacity-50" />
-                    <motion.div 
-                        className="absolute w-full h-1 bg-nothing-red shadow-[0_0_10px_#D71921]"
-                        animate={{ top: ['0%', '100%', '0%'] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    />
-                    <span className="mt-4 font-mono text-xs uppercase tracking-widest animate-pulse">Scanning Model...</span>
-                </motion.div>
-            )}
-            {loadingStage === 1 && (
-                <motion.div 
-                    key="specs"
-                    initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                    className="flex flex-col items-center space-y-2 w-full px-8"
-                >
-                    <div className="w-full space-y-2">
-                        <div className="h-2 bg-neutral-800 rounded overflow-hidden">
-                            <motion.div className="h-full bg-white" initial={{ width: 0 }} animate={{ width: '80%' }} transition={{ duration: 1 }} />
-                        </div>
-                        <div className="h-2 bg-neutral-800 rounded overflow-hidden">
-                            <motion.div className="h-full bg-white" initial={{ width: 0 }} animate={{ width: '60%' }} transition={{ duration: 1, delay: 0.2 }} />
-                        </div>
-                        <div className="h-2 bg-neutral-800 rounded overflow-hidden">
-                            <motion.div className="h-full bg-white" initial={{ width: 0 }} animate={{ width: '90%' }} transition={{ duration: 1, delay: 0.4 }} />
-                        </div>
-                    </div>
-                    <span className="font-mono text-xs uppercase tracking-widest mt-4 text-white">Calibrating Specs</span>
-                </motion.div>
-            )}
-            {loadingStage >= 2 && (
-                <motion.div 
-                    key="3d"
-                    initial={{ opacity: 0, rotateY: 90 }} animate={{ opacity: 1, rotateY: 0 }}
-                    className="relative flex flex-col items-center"
-                >
-                     <div className="relative">
-                        <Bike size={100} strokeWidth={1.5} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
-                        {loadingStage === 3 && (
-                            <motion.div 
-                                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                className="absolute -top-2 -right-2 bg-green-500 text-black p-1 rounded-full"
-                            >
-                                <Check size={16} strokeWidth={3} />
-                            </motion.div>
-                        )}
-                     </div>
-                     <span className="font-mono text-xs uppercase tracking-widest mt-4 text-green-500">
-                         {loadingStage === 3 ? "Garage Updated" : "Generating Asset"}
-                     </span>
-                </motion.div>
-            )}
+          {loadingStage === 0 && (
+            <motion.div
+              key="scan"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center text-nothing-red"
+            >
+              <Bike size={80} strokeWidth={1} className="opacity-50" />
+              <motion.div
+                className="absolute w-full h-1 bg-nothing-red shadow-[0_0_10px_#D71921]"
+                animate={{ top: ['0%', '100%', '0%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              />
+              <span className="mt-4 font-mono text-xs uppercase tracking-widest animate-pulse">Scanning Model...</span>
+            </motion.div>
+          )}
+          {loadingStage === 1 && (
+            <motion.div
+              key="specs"
+              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center space-y-2 w-full px-8"
+            >
+              <div className="w-full space-y-2">
+                <div className="h-2 bg-neutral-800 rounded overflow-hidden">
+                  <motion.div className="h-full bg-white" initial={{ width: 0 }} animate={{ width: '80%' }} transition={{ duration: 1 }} />
+                </div>
+                <div className="h-2 bg-neutral-800 rounded overflow-hidden">
+                  <motion.div className="h-full bg-white" initial={{ width: 0 }} animate={{ width: '60%' }} transition={{ duration: 1, delay: 0.2 }} />
+                </div>
+                <div className="h-2 bg-neutral-800 rounded overflow-hidden">
+                  <motion.div className="h-full bg-white" initial={{ width: 0 }} animate={{ width: '90%' }} transition={{ duration: 1, delay: 0.4 }} />
+                </div>
+              </div>
+              <span className="font-mono text-xs uppercase tracking-widest mt-4 text-white">Calibrating Specs</span>
+            </motion.div>
+          )}
+          {loadingStage >= 2 && (
+            <motion.div
+              key="3d"
+              initial={{ opacity: 0, rotateY: 90 }} animate={{ opacity: 1, rotateY: 0 }}
+              className="relative flex flex-col items-center"
+            >
+              <div className="relative">
+                <Bike size={100} strokeWidth={1.5} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                {loadingStage === 3 && (
+                  <motion.div
+                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    className="absolute -top-2 -right-2 bg-green-500 text-black p-1 rounded-full"
+                  >
+                    <Check size={16} strokeWidth={3} />
+                  </motion.div>
+                )}
+              </div>
+              <span className="font-mono text-xs uppercase tracking-widest mt-4 text-green-500">
+                {loadingStage === 3 ? "Garage Updated" : "Generating Asset"}
+              </span>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
-      
+
       <div className="text-center space-y-1">
-          <h2 className="text-xl font-medium text-nothing-white">
-             {loadingStage === 0 && "Identifying Model"}
-             {loadingStage === 1 && "Fetching Factory Specs"}
-             {loadingStage === 2 && "Building Digital Twin"}
-             {loadingStage === 3 && "Parked in Garage"}
-          </h2>
-          <p className="text-sm text-nothing-muted font-mono uppercase">
-             {selectedBike} • {bikeYear}
-          </p>
+        <h2 className="text-xl font-medium text-nothing-white">
+          {loadingStage === 0 && "Identifying Model"}
+          {loadingStage === 1 && "Fetching Factory Specs"}
+          {loadingStage === 2 && "Building Digital Twin"}
+          {loadingStage === 3 && "Parked in Garage"}
+        </h2>
+        <p className="text-sm text-nothing-muted font-mono uppercase">
+          {selectedBike} • {bikeYear}
+        </p>
       </div>
     </div>
   );
@@ -251,178 +248,168 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
       case 'ownership':
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
-             <div className="space-y-2">
-                <h2 className="text-3xl font-medium tracking-tight text-nothing-white">Do you own a bike?</h2>
-                <p className="text-nothing-muted">Onboarding your bike helps us recommend the exact parts you need.</p>
-             </div>
-             
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button 
-                  onClick={() => setUserStep('search')}
-                  className="h-40 border border-nothing-gray rounded-3xl p-6 flex flex-col justify-between items-start hover:bg-nothing-dark hover:border-nothing-white transition-all group bg-nothing-dark/50"
-                >
-                    <div className="p-3 bg-nothing-dark group-hover:bg-nothing-black rounded-full border border-nothing-gray transition-colors">
-                        <Bike size={24} className="text-nothing-white" />
-                    </div>
-                    <div className="text-left">
-                        <span className="font-medium text-lg block text-nothing-white">Yes, I ride.</span>
-                        <span className="text-xs font-mono text-nothing-muted group-hover:text-nothing-white uppercase tracking-wide">Add to Garage</span>
-                    </div>
-                </button>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-medium tracking-tight text-nothing-white">Do you own a bike?</h2>
+              <p className="text-nothing-muted">Onboarding your bike helps us recommend the exact parts you need.</p>
+            </div>
 
-                <button 
-                  onClick={handleNoBikeSubmit}
-                  className="h-40 border border-nothing-gray rounded-3xl p-6 flex flex-col justify-between items-start hover:bg-nothing-dark hover:border-nothing-white transition-all group bg-nothing-dark/50"
-                >
-                    <div className="p-3 bg-nothing-dark group-hover:bg-nothing-black rounded-full border border-nothing-gray transition-colors">
-                        <Box size={24} className="text-nothing-white" />
-                    </div>
-                    <div className="text-left">
-                        <span className="font-medium text-lg block text-nothing-white">Not yet.</span>
-                        <span className="text-xs font-mono text-nothing-muted group-hover:text-nothing-white uppercase tracking-wide">I'm just browsing</span>
-                    </div>
-                </button>
-             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={() => setUserStep('search')}
+                className="h-40 border border-nothing-gray rounded-3xl p-6 flex flex-col justify-between items-start hover:bg-nothing-dark hover:border-nothing-white transition-all group bg-nothing-dark/50"
+              >
+                <div className="p-3 bg-nothing-dark group-hover:bg-nothing-black rounded-full border border-nothing-gray transition-colors">
+                  <Bike size={24} className="text-nothing-white" />
+                </div>
+                <div className="text-left">
+                  <span className="font-medium text-lg block text-nothing-white">Yes, I ride.</span>
+                  <span className="text-xs font-mono text-nothing-muted group-hover:text-nothing-white uppercase tracking-wide">Add to Garage</span>
+                </div>
+              </button>
 
-             <div className="pt-8 flex justify-center">
-                 <button 
-                    onClick={onBack}
-                    className="text-sm font-mono text-nothing-muted hover:text-nothing-white uppercase tracking-widest transition-colors"
-                 >
-                    ← Back to Roles
-                 </button>
-             </div>
+              <button
+                onClick={handleNoBikeSubmit}
+                className="h-40 border border-nothing-gray rounded-3xl p-6 flex flex-col justify-between items-start hover:bg-nothing-dark hover:border-nothing-white transition-all group bg-nothing-dark/50"
+              >
+                <div className="p-3 bg-nothing-dark group-hover:bg-nothing-black rounded-full border border-nothing-gray transition-colors">
+                  <Box size={24} className="text-nothing-white" />
+                </div>
+                <div className="text-left">
+                  <span className="font-medium text-lg block text-nothing-white">Not yet.</span>
+                  <span className="text-xs font-mono text-nothing-muted group-hover:text-nothing-white uppercase tracking-wide">I'm just browsing</span>
+                </div>
+              </button>
+            </div>
+
+            <div className="pt-8 flex justify-center">
+              <button
+                onClick={onBack}
+                className="text-sm font-mono text-nothing-muted hover:text-nothing-white uppercase tracking-widest transition-colors"
+              >
+                ← Back to Roles
+              </button>
+            </div>
           </div>
         );
 
       case 'search':
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
-             <div className="space-y-2">
-                <h2 className="text-3xl font-medium tracking-tight text-nothing-white">What do you ride?</h2>
-                <p className="text-nothing-muted">Search for your model to get started.</p>
-             </div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-medium tracking-tight text-nothing-white">What do you ride?</h2>
+              <p className="text-nothing-muted">Search for your model to get started.</p>
+            </div>
 
-             <div className="relative">
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-nothing-muted" size={20} />
-                    <input 
-                        autoFocus
-                        type="text"
-                        placeholder="e.g. Royal Enfield Interceptor"
-                        className="w-full bg-nothing-dark border border-nothing-gray rounded-xl py-4 pl-12 pr-4 text-lg text-nothing-white outline-none focus:border-nothing-red transition-colors placeholder-nothing-muted"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    {searchTerm && (
-                        <button 
-                            onClick={() => { setSearchTerm(''); setSearchResults([]); }}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-nothing-muted hover:text-nothing-white"
-                        >
-                            <X size={20} />
-                        </button>
-                    )}
-                </div>
+            <div className="relative">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-nothing-muted" size={20} />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="e.g. Royal Enfield Interceptor"
+                  className="w-full bg-nothing-dark border border-nothing-gray rounded-xl py-4 pl-12 pr-4 text-lg text-nothing-white outline-none focus:border-nothing-red transition-colors placeholder-nothing-muted"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => { setSearchTerm(''); setSearchResults([]); }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-nothing-muted hover:text-nothing-white"
+                  >
+                    <X size={20} />
+                  </button>
+                )}
+              </div>
 
-                {/* Suggestions Dropdown */}
-                {searchResults.length > 0 && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-nothing-dark border border-nothing-gray rounded-xl overflow-hidden shadow-2xl z-20 max-h-60 overflow-y-auto custom-scrollbar"
+              {/* Suggestions Dropdown */}
+              {searchResults.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute top-full left-0 right-0 mt-2 bg-nothing-dark border border-nothing-gray rounded-xl overflow-hidden shadow-2xl z-20 max-h-60 overflow-y-auto custom-scrollbar"
+                >
+                  {searchResults.map((bike, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleBikeSelect(bike)}
+                      className="w-full text-left px-6 py-4 hover:bg-nothing-black/5 border-b border-nothing-gray last:border-0 flex items-center justify-between group"
                     >
-                        {searchResults.map((bike, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => handleBikeSelect(bike)}
-                                className="w-full text-left px-6 py-4 hover:bg-nothing-black/5 border-b border-nothing-gray last:border-0 flex items-center justify-between group"
-                            >
-                                <span className="text-nothing-muted group-hover:text-nothing-white">{bike}</span>
-                                <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-nothing-red" />
-                            </button>
-                        ))}
-                    </motion.div>
-                )}
+                      <span className="text-nothing-muted group-hover:text-nothing-white">{bike}</span>
+                      <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-nothing-red" />
+                    </button>
+                  ))}
+                </motion.div>
+              )}
 
-                {searchTerm.length > 2 && searchResults.length === 0 && (
-                     <div className="mt-4 p-4 border border-dashed border-nothing-gray rounded-xl text-center text-nothing-muted">
-                         <AlertCircle className="mx-auto mb-2" size={20} />
-                         <p className="text-sm">We couldn't find that model.</p>
-                         <button className="text-xs font-mono text-nothing-red mt-2 hover:underline uppercase">Add manually</button>
-                     </div>
-                )}
-             </div>
-             
-             <div className="pt-20">
-                 <button onClick={() => setUserStep('ownership')} className="text-sm font-mono text-nothing-muted hover:text-nothing-white uppercase tracking-widest">
-                    Back
-                 </button>
-             </div>
+              {searchTerm.length > 2 && searchResults.length === 0 && (
+                <div className="mt-4 p-4 border border-dashed border-nothing-gray rounded-xl text-center text-nothing-muted">
+                  <AlertCircle className="mx-auto mb-2" size={20} />
+                  <p className="text-sm">We couldn't find that model.</p>
+                  <button className="text-xs font-mono text-nothing-red mt-2 hover:underline uppercase">Add manually</button>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-20">
+              <button onClick={() => setUserStep('ownership')} className="text-sm font-mono text-nothing-muted hover:text-nothing-white uppercase tracking-widest">
+                Back
+              </button>
+            </div>
           </div>
         );
 
       case 'details':
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
-             <div className="space-y-2">
-                <div className="inline-block px-3 py-1 bg-nothing-white/10 rounded-full text-xs font-mono mb-2 text-nothing-white">{selectedBike}</div>
-                <h2 className="text-3xl font-medium tracking-tight text-nothing-white">Tell us a bit more.</h2>
-                <p className="text-nothing-muted">This helps with accurate maintenance schedules.</p>
-             </div>
+            <div className="space-y-2">
+              <div className="inline-block px-3 py-1 bg-nothing-white/10 rounded-full text-xs font-mono mb-2 text-nothing-white">{selectedBike}</div>
+              <h2 className="text-3xl font-medium tracking-tight text-nothing-white">Tell us a bit more.</h2>
+              <p className="text-nothing-muted">This helps with accurate maintenance schedules.</p>
+            </div>
 
-             <div className="space-y-8">
-                 <div className="space-y-4">
-                     <label className="text-xs font-mono uppercase text-nothing-muted tracking-widest">Purchase Year: <span className="text-nothing-white">{bikeYear}</span></label>
-                     <input 
-                        type="range" 
-                        min="2010" 
-                        max="2026" 
-                        step="1" 
-                        value={bikeYear}
-                        onChange={(e) => setBikeYear(e.target.value)}
-                        className="w-full h-2 bg-nothing-gray rounded-lg appearance-none cursor-pointer accent-nothing-red"
-                     />
-                     <div className="flex justify-between text-xs text-nothing-muted font-mono">
-                         <span>2010</span>
-                         <span>2024</span>
-                     </div>
-                 </div>
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <label className="text-xs font-mono uppercase text-nothing-muted tracking-widest">Purchase Year: <span className="text-nothing-white">{bikeYear}</span></label>
+                <input
+                  type="range"
+                  min="2010"
+                  max="2026"
+                  step="1"
+                  value={bikeYear}
+                  onChange={(e) => setBikeYear(e.target.value)}
+                  className="w-full h-2 bg-nothing-gray rounded-lg appearance-none cursor-pointer accent-nothing-red"
+                />
+                <div className="flex justify-between text-xs text-nothing-muted font-mono">
+                  <span>2010</span>
+                  <span>2026</span>
+                </div>
+              </div>
 
-                 <div className="space-y-4">
-                     <label className="text-xs font-mono uppercase text-nothing-muted tracking-widest">KM Run</label>
-                     <div className="grid grid-cols-2 gap-3">
-                        {['0-5000', '5000-10000', '10000-25000', '25000+'].map(range => (
-                            <button
-                                key={range}
-                                onClick={() => setBikeKm(range)}
-                                className={`
-                                    py-3 px-4 rounded-xl border font-mono text-xs transition-colors
-                                    ${bikeKm === range 
-                                        ? 'bg-nothing-white border-nothing-white text-nothing-black' 
-                                        : 'bg-nothing-dark border-nothing-gray text-nothing-muted hover:border-nothing-gray hover:text-nothing-white'
-                                    }
-                                `}
-                            >
-                                {range} KM
-                            </button>
-                        ))}
-                     </div>
-                 </div>
-             </div>
+              <div className="space-y-2">
+                <Input
+                  label="Registration Number (Optional)"
+                  name="registration"
+                  placeholder="MH 12 AB 1234"
+                  value={registration}
+                  onChange={(e) => setRegistration(e.target.value)}
+                  helperText="Used to fetch insurance and service history automatically."
+                />
+              </div>
+            </div>
 
-             <div className="pt-8 flex items-center justify-between">
-                 <button onClick={() => setUserStep('search')} className="text-sm font-mono text-nothing-muted hover:text-nothing-white uppercase tracking-widest">
-                    Back
-                 </button>
-                 <Button onClick={() => setUserStep('loading')} withArrow>
-                     Build Garage
-                 </Button>
-             </div>
+            <div className="pt-8 flex items-center justify-between">
+              <button onClick={() => setUserStep('search')} className="text-sm font-mono text-nothing-muted hover:text-nothing-white uppercase tracking-widest">
+                Back
+              </button>
+              <Button onClick={() => setUserStep('loading')} withArrow>
+                Build Garage
+              </Button>
+            </div>
           </div>
         );
-      
+
       case 'loading':
-          return renderGarageLoader();
+        return renderGarageLoader();
 
       default:
         return null;
@@ -431,14 +418,14 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
 
 
   // --- MAIN RENDER ---
-  
+
   // If user role, separate flow entirely
   if (role === 'user') {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 w-full max-w-xl mx-auto relative z-10">
-            {renderUserWizard()}
-        </div>
-      );
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 w-full max-w-xl mx-auto relative z-10">
+        {renderUserWizard()}
+      </div>
+    );
   }
 
   // --- SELLER / MECHANIC FORM (Legacy) ---
@@ -473,12 +460,12 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
 
         {/* Dynamic Form Content */}
         <div className="space-y-6">
-          
+
           {/* SELLER FORM */}
           {role === 'seller' && (
             <>
-              <Input 
-                label="Business Name" 
+              <Input
+                label="Business Name"
                 name="businessName"
                 value={formData.businessName}
                 onChange={handleChange}
@@ -486,8 +473,8 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
                 error={errors.businessName}
               />
               <div className="space-y-2">
-                <Input 
-                  label="GST Number (Optional)" 
+                <Input
+                  label="GST Number (Optional)"
                   name="gstNumber"
                   value={formData.gstNumber}
                   onChange={handleChange}
@@ -495,10 +482,10 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
                   error={errors.gstNumber}
                 />
                 <div className="flex gap-2 items-start text-nothing-muted text-sm mt-2 bg-nothing-dark/50 p-3 rounded-lg border border-nothing-gray/30">
-                   <Info size={16} className="mt-0.5 text-nothing-red shrink-0" />
-                   <p className="leading-tight text-xs font-mono">
-                     If your GST is verified by us, you will receive a <span className="text-nothing-white">Verified Seller Badge</span> on your profile.
-                   </p>
+                  <Info size={16} className="mt-0.5 text-nothing-red shrink-0" />
+                  <p className="leading-tight text-xs font-mono">
+                    If your GST is verified by us, you will receive a <span className="text-nothing-white">Verified Seller Badge</span> on your profile.
+                  </p>
                 </div>
               </div>
             </>
@@ -507,44 +494,44 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
           {/* MECHANIC FORM */}
           {role === 'mechanic' && (
             <>
-              <Input 
-                label="Shop Name" 
+              <Input
+                label="Shop Name"
                 name="shopName"
                 value={formData.shopName}
                 onChange={handleChange}
-                placeholder="FixIt Hub" 
+                placeholder="FixIt Hub"
                 error={errors.shopName}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input 
-                  label="Experience (Years)" 
+                <Input
+                  label="Experience (Years)"
                   name="experienceYears"
                   type="number"
                   value={formData.experienceYears}
                   onChange={handleChange}
-                  placeholder="5" 
+                  placeholder="5"
                   error={errors.experienceYears}
                 />
-                <Input 
-                  label="Hourly Rate (₹)" 
+                <Input
+                  label="Hourly Rate (₹)"
                   name="hourlyRate"
                   type="number"
                   value={formData.hourlyRate}
                   onChange={handleChange}
-                  placeholder="500" 
+                  placeholder="500"
                   error={errors.hourlyRate}
                 />
               </div>
-              <Input 
-                label="Shop Address" 
+              <Input
+                label="Shop Address"
                 name="shopAddress"
                 value={formData.shopAddress}
                 onChange={handleChange}
-                placeholder="123 Service Road, Mumbai" 
+                placeholder="123 Service Road, Mumbai"
                 error={errors.shopAddress}
               />
               <div className="pt-2">
-                <Checkbox 
+                <Checkbox
                   label="I provide mobile service (Home visits)"
                   checked={formData.isMobileService}
                   onChange={handleCheckboxChange}
@@ -559,9 +546,9 @@ const RoleDetails = ({ role, onBack, onContinue }) => {
           <Button fullWidth withArrow onClick={handleGeneralSubmit}>
             Continue
           </Button>
-          
+
           <div className="flex justify-center items-center pt-2">
-            <button 
+            <button
               onClick={onBack}
               className="text-sm font-mono text-nothing-muted hover:text-nothing-white transition-colors uppercase tracking-widest"
             >

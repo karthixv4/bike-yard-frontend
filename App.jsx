@@ -31,12 +31,13 @@ const App = () => {
     const root = document.documentElement;
     if (theme === 'light') {
       root.classList.add('light-mode');
+      root.classList.remove('dark');
     } else {
       root.classList.remove('light-mode');
+      root.classList.add('dark');
     }
   }, [theme]);
 
-  // Helper to calculate progress width based on current view
   const getProgressWidth = () => {
     if (isAuthenticated) return '100%';
     if (currentView === 'login') return '100%';
@@ -65,14 +66,10 @@ const App = () => {
     setCurrentView('login');
   }
 
-  // --- RENDER CONTENT ---
   const renderContent = () => {
-    // 1. Authenticated User Routing
     if (isAuthenticated && user) {
-      // Logic to determine dashboard based on 'role' string derived in authSlice
       if (user.role === 'seller') return <SellerDashboard />;
       if (user.role === 'mechanic') return <MechanicDashboard />;
-      // Default to User/Rider dashboard
       return <UserDashboard />;
     }
 
