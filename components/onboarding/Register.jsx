@@ -15,7 +15,8 @@ const Register = ({ selectedRole, onBack, onLogin }) => {
     firstName: '',
     lastName: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
 
   const [localError, setLocalError] = useState(null);
@@ -45,15 +46,19 @@ const Register = ({ selectedRole, onBack, onLogin }) => {
       setLocalError('Password must be at least 6 characters long.');
       return false;
     }
+    if (form.password !== form.confirmPassword) {
+      setLocalError('Passwords do not match.');
+      return false;
+    }
 
     return true;
   };
 
   const handleRegister = () => {
     if (!validateForm()) return;
-
+    const { confirmPassword, ...registerData } = form;
     const completeData = {
-      ...form,
+      ...registerData,
       name: `${form.firstName} ${form.lastName}`,
       role: selectedRole,
       roleDetails: onboarding.details
@@ -138,6 +143,14 @@ const Register = ({ selectedRole, onBack, onLogin }) => {
             value={form.password}
             onChange={handleChange}
             placeholder="Min 6 chars"
+          />
+          <Input
+            label="Confirm Password"
+            type="password"
+            name="confirmPassword"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            placeholder="Re-enter password"
           />
         </div>
 

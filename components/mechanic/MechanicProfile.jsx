@@ -14,6 +14,7 @@ const MechanicProfile = () => {
     // Local state for form fields
     const [formData, setFormData] = useState({
         name: '',
+        email: '',
         phone: '',
         experienceYears: '',
         shopAddress: '',
@@ -34,6 +35,7 @@ const MechanicProfile = () => {
 
             setFormData({
                 name: profile.user?.name || '',
+                email: profile.user?.email || '',
                 phone: profile.user?.phone || '',
                 experienceYears: safeString(profile.experienceYears),
                 shopAddress: profile.shopAddress || '',
@@ -46,6 +48,7 @@ const MechanicProfile = () => {
 
             setFormData({
                 name: user.name || '',
+                email: user.email || '',
                 phone: user.phone || '',
                 experienceYears: safeString(user.details?.experienceYears),
                 shopAddress: user.details?.shopAddress || '',
@@ -102,21 +105,31 @@ const MechanicProfile = () => {
                         <h3 className="text-lg font-medium text-nothing-white border-b border-nothing-gray pb-4 flex items-center gap-2">
                             <User size={18} /> Personal Info
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 gap-6">
                             <Input
-                                label="Display Name"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                placeholder="John Doe"
+                                label="Email Address"
+                                value={formData.email}
+                                onChange={() => { }}
+                                disabled
+                                className="opacity-60 cursor-not-allowed bg-nothing-black/50"
+                                helperText="Email ID cannot be changed. Contact support for assistance."
                             />
-                            <Input
-                                label="Phone Number"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                placeholder="+91 98765 43210"
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <Input
+                                    label="Display Name"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    placeholder="John Doe"
+                                />
+                                <Input
+                                    label="Phone Number"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    placeholder="+91 98765 43210"
+                                />
+                            </div>
                         </div>
                     </div>
 

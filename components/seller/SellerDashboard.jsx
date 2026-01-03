@@ -8,6 +8,7 @@ import Button from '../common/Button';
 import DashboardTour from './DashboardTour';
 import EditProductModal from './EditProductModal';
 import AddProductModal from './AddProductModal';
+import SellerProfile from './SellerProfile';
 import {
   TrendingUp,
   Package,
@@ -111,7 +112,7 @@ const SellerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-nothing-black text-nothing-white selection:bg-nothing-red selection:text-white transition-colors duration-300 flex flex-col">
-      <Navbar userName={userName} role="Seller" />
+      <Navbar userName={userName} role="Seller" onProfileClick={() => setActiveTab('profile')} />
 
       {/* Tour Overlay */}
       <AnimatePresence>
@@ -203,34 +204,31 @@ const SellerDashboard = () => {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-2"
           >
-            <h1 className="text-4xl font-medium tracking-tight text-nothing-white">Overview.</h1>
-            <p className="text-nothing-muted font-light">Here's what's happening with your store today.</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <Button variant="secondary" onClick={() => { }} className="text-sm py-3 px-6">
-              Download Report
-            </Button>
+            <h1 className="text-4xl font-medium tracking-tight text-nothing-white">
+              {activeTab === 'profile' ? 'My Profile.' : 'Overview.'}
+            </h1>
+            <p className="text-nothing-muted font-light">
+              {activeTab === 'profile' ? 'Manage your business details.' : "Here's what's happening with your store today."}
+            </p>
           </motion.div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <StatCard
-            title="Total Revenue"
-            value={`₹${stats.revenue.toLocaleString()}`}
-            icon={DollarSign}
-            trend=""
-          />
-          <StatCard
-            title="Items Sold"
-            value={stats.totalOrders}
-            icon={ShoppingBag}
-          />
-        </div>
+        {/* Stats Grid - Hide on Profile Tab */}
+        {activeTab !== 'profile' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <StatCard
+              title="Total Revenue"
+              value={`₹${stats.revenue.toLocaleString()}`}
+              icon={DollarSign}
+              trend=""
+            />
+            <StatCard
+              title="Items Sold"
+              value={stats.totalOrders}
+              icon={ShoppingBag}
+            />
+          </div>
+        )}
 
         {/* Content Tabs */}
         <div className="mt-12">
@@ -252,6 +250,14 @@ const SellerDashboard = () => {
                 Sales
                 {activeTab === 'orders' && <motion.div layoutId="dash_underline" className="absolute bottom-0 left-0 w-full h-0.5 bg-nothing-red" />}
               </button>
+              <button
+                onClick={() => setActiveTab('profile')}
+                className={`pb-4 text-sm font-mono uppercase tracking-widest transition-colors relative ${activeTab === 'profile' ? 'text-nothing-white' : 'text-nothing-muted hover:text-nothing-white'
+                  }`}
+              >
+                Profile
+                {activeTab === 'profile' && <motion.div layoutId="dash_underline" className="absolute bottom-0 left-0 w-full h-0.5 bg-nothing-red" />}
+              </button>
             </div>
 
             {activeTab === 'inventory' && (
@@ -267,7 +273,7 @@ const SellerDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             {/* Main List Area (2 Cols) */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className={`${activeTab === 'profile' ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-6`}>
 
               <AnimatePresence mode="wait">
                 {activeTab === 'inventory' ? (
@@ -351,7 +357,7 @@ const SellerDashboard = () => {
                       </div>
                     )}
                   </motion.div>
-                ) : (
+                ) : activeTab === 'orders' ? (
                   <motion.div
                     key="orders"
                     initial={{ opacity: 0, y: 10 }}
@@ -407,41 +413,51 @@ const SellerDashboard = () => {
                       </div>
                     )}
                   </motion.div>
+                ) : (
+                  <motion.div
+                    key="profile"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <SellerProfile />
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
             {/* Recent Activity (Side Col) */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-medium text-nothing-white">Activity.</h2>
-              <div className="bg-nothing-dark border border-nothing-gray rounded-3xl p-6 min-h-[300px]">
-                <div className="flex gap-4 items-start relative pb-8">
-                  <div className="absolute left-[11px] top-3 bottom-0 w-px bg-nothing-gray" />
-                  <div className="w-2.5 h-2.5 mt-1.5 bg-green-500 rounded-full shrink-0 z-10 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                  <div>
-                    <p className="text-sm text-nothing-white font-medium">Store setup completed</p>
-                    <p className="text-xs text-nothing-muted font-mono mt-1">Today</p>
-                  </div>
-                </div>
-
-                {/* Recent sales */}
-                {sales.slice(0, 3).map((s, i) => (
-                  <div key={s.id} className="flex gap-4 items-start relative pb-8">
+            {activeTab !== 'profile' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-medium text-nothing-white">Activity.</h2>
+                <div className="bg-nothing-dark border border-nothing-gray rounded-3xl p-6 min-h-[300px]">
+                  <div className="flex gap-4 items-start relative pb-8">
                     <div className="absolute left-[11px] top-3 bottom-0 w-px bg-nothing-gray" />
-                    <div className="w-2.5 h-2.5 mt-1.5 bg-blue-500 rounded-full shrink-0 z-10" />
+                    <div className="w-2.5 h-2.5 mt-1.5 bg-green-500 rounded-full shrink-0 z-10 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                     <div>
-                      <p className="text-sm text-nothing-white">Sold <span className="font-medium">{s.product.title}</span></p>
-                      <div className="mt-2 p-2 bg-nothing-black border border-nothing-gray rounded-xl">
-                        <p className="text-xs font-mono text-nothing-white">Buyer: {s.order.buyer.name}</p>
-                        <p className="text-xs text-nothing-muted mt-1">Amt: ₹{s.priceAtPurchase.toLocaleString()}</p>
-                      </div>
-                      <p className="text-xs text-nothing-muted font-mono mt-2">{s.order.createdAt}</p>
+                      <p className="text-sm text-nothing-white font-medium">Store setup completed</p>
+                      <p className="text-xs text-nothing-muted font-mono mt-1">Today</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
 
+                  {/* Recent sales */}
+                  {sales.slice(0, 3).map((s, i) => (
+                    <div key={s.id} className="flex gap-4 items-start relative pb-8">
+                      <div className="absolute left-[11px] top-3 bottom-0 w-px bg-nothing-gray" />
+                      <div className="w-2.5 h-2.5 mt-1.5 bg-blue-500 rounded-full shrink-0 z-10" />
+                      <div>
+                        <p className="text-sm text-nothing-white">Sold <span className="font-medium">{s.product.title}</span></p>
+                        <div className="mt-2 p-2 bg-nothing-black border border-nothing-gray rounded-xl">
+                          <p className="text-xs font-mono text-nothing-white">Buyer: {s.order.buyer.name}</p>
+                          <p className="text-xs text-nothing-muted mt-1">Amt: ₹{s.priceAtPurchase.toLocaleString()}</p>
+                        </div>
+                        <p className="text-xs text-nothing-muted font-mono mt-2">{s.order.createdAt}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

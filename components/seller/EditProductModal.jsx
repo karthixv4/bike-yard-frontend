@@ -12,8 +12,8 @@ const EditProductModal = () => {
     const dispatch = useDispatch();
     const { categories, editingProduct } = useSelector((state) => state.seller);
 
-    const type = editingProduct?.type || 'part';
-    const isPartOrAccessory = type === 'part' || type === 'accessory';
+    const type = editingProduct?.type || 'PART';
+    const isPartOrAccessory = type === 'PART' || type === 'ACCESSORY';
 
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState('');
@@ -403,12 +403,12 @@ const EditProductModal = () => {
                                                 <div className="max-h-48 overflow-y-auto custom-scrollbar p-1">
                                                     {filteredCategories.map((cat, idx) => (
                                                         <button
-                                                            key={idx}
-                                                            onClick={() => handleCategorySelect(cat)}
+                                                            key={cat.id || idx}
+                                                            onClick={() => handleCategorySelect(cat.name)}
                                                             className="w-full text-left px-3 py-2 rounded-lg text-sm text-nothing-white hover:bg-nothing-gray/20 transition-colors flex items-center justify-between"
                                                         >
-                                                            {cat}
-                                                            {formData.category === cat && <Check size={14} className="text-nothing-red" />}
+                                                            {cat.name}
+                                                            {formData.category === cat.name && <Check size={14} className="text-nothing-red" />}
                                                         </button>
                                                     ))}
 

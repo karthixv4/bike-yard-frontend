@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateUserProfile } from '../../store/slices/authSlice';
+import { updateUserProfile, fetchUserProfile } from '../../store/slices/authSlice';
 import { User, Camera, MapPin } from 'lucide-react';
 import Input from '../common/Input';
 import Button from '../common/Button';
@@ -8,23 +8,46 @@ import Button from '../common/Button';
 const UserProfile = () => {
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
-
-    const [name, setName] = useState(user?.name || '');
-    const [email, setEmail] = useState(user?.email || '');
-    const [phone, setPhone] = useState(user?.phone || '');
+    console.log("USer: ", user)
+    // Local state for form fields
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
 
     // Address State
     const [address, setAddress] = useState({
-        street: user?.address?.street || '',
-        city: user?.address?.city || '',
-        state: user?.address?.state || '',
-        zip: user?.address?.zip || '',
-        country: user?.address?.country || 'India'
+        street: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: 'India'
     });
+
 
     const [previewImage, setPreviewImage] = useState(user?.profileImage || null);
     const fileInputRef = useRef(null);
     const [selectedFile, setSelectedFile] = useState(undefined);
+
+    useEffect(() => {
+        dispatch(fetchUserProfile());
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (user) {
+            setName(user.name || '');
+            setEmail(user.email || '');
+            setPhone(user.phone || '');
+            setAddress({
+                street: user.address?.street || '',
+                city: user.address?.city || '',
+                state: user.address?.state || '',
+                zip: user.address?.zip || '',
+                country: user.address?.country || 'India'
+            });
+            setPreviewImage(user.profileImage || null);
+        }
+    }, [user]);
+
 
     const handleAddressChange = (e) => {
         const { name, value } = e.target;

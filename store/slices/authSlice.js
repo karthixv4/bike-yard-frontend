@@ -67,6 +67,21 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+export const fetchUserProfile = createAsyncThunk(
+  'auth/fetchProfile',
+  async (_, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('fetching-profile'));
+    try {
+      const response = await authService.getProfile();
+      return response;
+    } catch (err) {
+      return rejectWithValue('Failed to fetch profile');
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
+
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { dispatch, rejectWithValue }) => {
@@ -224,6 +239,18 @@ const authSlice = createSlice({
           ...state.user.details,
           ...mechanicFields
         };
+        localStorage.setItem('auth_user', JSON.stringify(state.user));
+      }
+    });
+    builder.addCase(fetchUserProfile.fulfilled, (state, action) => {
+      if (state.user) {
+        const { addresses, ...userData } = action.payload;
+        state.user = {
+          ...state.user,
+          ...userData,
+          address: addresses && addresses.length > 0 ? addresses[0] : state.user.address
+        };
+
         localStorage.setItem('auth_user', JSON.stringify(state.user));
       }
     });

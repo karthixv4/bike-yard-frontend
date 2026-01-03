@@ -106,14 +106,11 @@ export const sellerService = {
     const response = await apiClient.post('/products/categories', categoryName);
     return response.data;
   },
-  // Simulate fetching a signed URL/signature from backend
-  // 1. Get Signature
   getUploadSignature: async () => {
     const response = await apiClient.get('/auth/upload-signature')
     return response.data;
   },
 
-  // 2. Direct Upload to Cloudinary (REAL)
   uploadToCloudinary: async (file, signatureData) => {
     const formData = new FormData();
 
@@ -148,5 +145,14 @@ export const sellerService = {
       bytes: data.bytes,
       original_filename: data.original_filename
     };
+  },
+  getProfile: async () => {
+    const response = await apiClient.get('/user/profile');
+    return response.data;
+  },
+
+  updateProfile: async (data) => {
+    const response = await apiClient.put('/seller/profile', data);
+    return response.data;
   }
 };

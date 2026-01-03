@@ -13,6 +13,7 @@ const initialState = {
     revenue: 0,
     totalOrders: 0,
   },
+  profile: null,
   isTourOpen: false,
   tourStep: 0,
   isAddModalOpen: false,
@@ -311,6 +312,51 @@ export const deleteSellerProduct = createAsyncThunk(
   }
 );
 
+
+export const fetchSellerProfile = createAsyncThunk(
+  'seller/fetchProfile',
+  async (_, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('fetching-profile'));
+    try {
+      const response = await sellerService.getProfile();
+      // Normalizing logic if needed, assuming API returns structure matching SellerProfileData
+      return response;
+    } catch (error) {
+      return rejectWithValue('Failed to load profile');
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
+
+export const updateSellerProfile = createAsyncThunk(
+  'seller/updateProfile',
+  async (data, { dispatch, rejectWithValue }) => {
+    dispatch(setLoader('updating-profile'));
+    try {
+      const response = await sellerService.updateProfile(data);
+
+      dispatch(addNotification({
+        title: 'Profile Updated',
+        message: 'Your business details have been saved successfully.',
+        type: 'success'
+      }));
+
+      return response
+    } catch (error) {
+      dispatch(openStatusModal({
+        type: 'error',
+        title: 'Update Failed',
+        message: error.message || 'Could not update profile.'
+      }));
+      return rejectWithValue(error.message);
+    } finally {
+      dispatch(setLoader(null));
+    }
+  }
+);
+
+
 const sellerSlice = createSlice({
   name: 'seller',
   initialState,
@@ -371,8 +417,6 @@ const sellerSlice = createSlice({
     });
     builder.addCase(fetchSellerOrders.fulfilled, (state, action) => {
       state.sales = action.payload;
-      // Calculate Stats
-      // Exclude 'CANCELLED' orders from revenue
       state.stats.revenue = action.payload.reduce((acc, curr) => {
         if (curr.order.status !== 'CANCELLED') {
           return acc + (curr.priceAtPurchase * curr.quantity);
@@ -424,6 +468,29 @@ const sellerSlice = createSlice({
         state.categories.push({ id, name });
       }
       state.categories.sort();
+    });
+    builder.addCase(fetchSellerProfile.fulfilled, (state, action) => {
+      state.profile = action.payload;
+    });
+    builder.addCase(updateSellerProfile.fulfilled, (state, action) => {
+      const updated = action.payload;
+
+      if (!state.profile) return;
+      state.profile = {
+        ...state.profile,
+        name: updated.name ?? state.profile.name,
+        phone: updated.phone ?? state.profile.phone,
+        sellerProfile: {
+          ...state.profile.sellerProfile,
+          businessName: updated.businessName,
+          gstNumber: updated.gstNumber,
+          isVerified: updated.isVerified
+        },
+        address: updated.address,
+        addresses: updated.address
+          ? [updated.address]
+          : state.profile.addresses
+      };
     });
   }
 

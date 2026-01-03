@@ -5,7 +5,7 @@ import { loginUser, clearError } from '../../store/slices/authSlice';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import DemoCredentials from '../common/DemoCredentials';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 const Login = ({ onBack, onRegister }) => {
   const dispatch = useDispatch();
@@ -13,6 +13,8 @@ const Login = ({ onBack, onRegister }) => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   const [localError, setLocalError] = useState(null);
 
   useEffect(() => {
@@ -89,10 +91,19 @@ const Login = ({ onBack, onRegister }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             error={localError && !email ? 'Required' : undefined}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="hover:text-nothing-white transition-colors focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            }
           />
           <Input
             label="Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

@@ -115,6 +115,23 @@ const CustomLoaders = ({ type }) => {
             </div>
           </div>
         );
+      case 'fetching-profile':
+        return (
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative w-24 h-24 flex items-center justify-center bg-nothing-dark border border-nothing-gray rounded-full">
+              <UserCheck size={32} className="text-nothing-white" />
+              <motion.div
+                className="absolute inset-0 border-2 border-nothing-red rounded-full border-t-transparent"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+              />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-medium tracking-tight">Loading Profile</h3>
+              <p className="text-xs font-mono text-neutral-500 uppercase tracking-widest">Retrieving details...</p>
+            </div>
+          </div>
+        );
       case 'auth':
         return (
           <div className="flex flex-col items-center gap-6">

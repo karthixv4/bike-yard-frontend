@@ -1,7 +1,7 @@
 import React, { useId } from 'react';
 
 
-const Input = ({ label, error, helperText, className = '', id, ...props }) => {
+const Input = ({ label, error, helperText, rightElement, className = '', id, ...props }) => {
   const generatedId = useId();
   const inputId = id || generatedId;
 
@@ -42,12 +42,18 @@ const Input = ({ label, error, helperText, className = '', id, ...props }) => {
               ? 'border-nothing-red focus:border-nothing-red'
               : 'border-nothing-gray'
             }
+              ${rightElement ? 'pr-12' : ''}
             ${className}
             `}
           aria-invalid={!!error}
           aria-describedby={helperText ? `${inputId}-helper` : undefined}
           {...props}
         />
+        {rightElement && (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-nothing-muted">
+            {rightElement}
+          </div>
+        )}
       </div>
       {helperText && !error && (
         <p id={`${inputId}-helper`} className="text-[10px] text-nothing-muted ml-1 font-mono opacity-80">
