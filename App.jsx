@@ -13,7 +13,7 @@ import CustomLoaders from './components/common/CustomLoaders';
 import StatusModal from './components/common/StatusModal';
 import ThemeToggle from './components/common/ThemeToggle';
 import LandingPage from './components/landing/LandingPage';
-
+import { Analytics } from '@vercel/analytics/react';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -191,6 +191,7 @@ const App = () => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative">
         {renderContent()}
+        <Analytics />
       </main>
 
       {/* Decorative Bottom Bar - Progress Indicator */}
